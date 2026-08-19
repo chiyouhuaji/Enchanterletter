@@ -1,0 +1,164 @@
+plugins {
+    id 'java-library'
+    id 'eclipse'
+    id 'idea'
+    id 'maven-publish'
+    id 'net.minecraftforge.gradle' version '[6.0,6.2)'
+}
+
+version = project.mod_version
+group = project.maven_group
+
+base {
+    archivesName = 'enchanter_letter'
+}
+
+java.toolchain.languageVersion = JavaLanguageVersion.of(17)
+
+minecraft {
+    mappings channel: 'official', version: project.minecraft_version
+
+    runs {
+        client {
+            workingDirectory project.file('run')
+            property 'forge.logging.markers', 'REGISTRIES'
+            property 'forge.logging.console.level', 'debug'
+            mods { "${project.mod_id}" { source sourceSets.main } }
+        }
+        server {
+            workingDirectory project.file('run')
+            args '--nogui'
+            property 'forge.logging.console.level', 'debug'
+            mods { "${project.mod_id}" { source sourceSets.main } }
+        }
+        data {
+            workingDirectory project.file('run')
+            args '--mod', project.mod_id, '--all', '--output', file('src/generated/resources/').getAbsolutePath(), '--existing', file('src/main/resources/').getAbsolutePath()
+            mods { "${project.mod_id}" { source sourceSets.main } }
+        }
+    }
+}
+
+sourceSets.main.resources {
+    srcDir 'src/generated/resources'
+    exclude("src/generated/**/.cache")
+}
+
+repositories {
+    maven {
+        name = 'NeoForged'
+        url = 'https://maven.neoforged.net/releases'
+    }
+}
+
+dependencies {
+    // NeoForge 1.20.1（net.neoforged:forge:1.20.1-47.1.x，含 net.neoforged.neoforge 包）
+    minecraft "net.neoforged:forge:${project.forge_version}"
+
+    // Mixin 注解处理器（生成 refmap，供生产环境 SRG 重混淆后定位 mixin 目标）
+    annotationProcessor 'org.spongepowered:mixin:0.8.5:processor'
+}
+
+var generateModMetadata = tasks.register("generateModMetadata", ProcessResources) {
+    var replaceProperties = [
+            minecraft_version      : project.minecraft_version,
+            minecraft_version_range: project.minecraft_version_range,
+            forge_version         : project.forge_version,
+            forge_version_range    : project.forge_version_range,
+            loader_version_range   : project.loader_version_range,
+            mod_id                 : project.mod_id,
+            mod_name               : project.mod_name,
+            mod_license            : project.mod_license,
+            mod_version            : project.mod_version,
+            mod_authors            : project.mod_authors,
+            mod_description        : project.mod_description,
+    ]
+    inputs.properties replaceProperties
+    expand replaceProperties
+    from "src/main/templates"
+    into "build/generated/sources/modMetadata"
+}
+sourceSets.main.resources.srcDir generateModMetadata
+processResources.dependsOn generateModMetadata
+
+// ---- Mixin refmap 支持（Forge 1.20.1 生产环境为 mojmap-hashed 运行时名，如 m_111886_） ----
+// FG6 的 createMcpToSrg 产出 TSRG2（official -> m_xxx_），而 Mixin 注解处理器只认
+// 经典 MCP SRG 格式（CL:/FD:/MD: 前缀行），这里做一次格式转换。
+def mixinSrgFile = file('build/mixinSrg/enchanter_letter.srg')
+
+tasks.register('convertSrgForMixin') {
+    dependsOn 'createMcpToSrg'
+    def inFile = file('build/createMcpToSrg/output.tsrg')
+    inputs.file(inFile)
+    outputs.file(mixinSrgFile)
+    doLast {
+        mixinSrgFile.parentFile.mkdirs()
+        def out = new PrintWriter(new FileWriter(mixinSrgFile))
+        String currentClass = null
+        inFile.eachLine('UTF-8') { line ->
+            if (line.startsWith('tsrg2')) return
+            if (line.startsWith('\t\t')) return
+            if (line.startsWith('\t')) {
+                def parts = line.substring(1).split(' ')
+                if (parts.length == 3) {
+                    // 方法：name (desc) target
+                    out.println("MD: ${currentClass}/${parts[0]} ${parts[1]} ${currentClass}/${parts[2]} ${parts[1]}")
+                } else if (parts.length == 2) {
+                    // 字段：name target
+                    out.println("FD: ${currentClass}/${parts[0]} ${currentClass}/${parts[1]}")
+                }
+            } else {
+                def parts = line.split(' ')
+                if (parts.length == 2) currentClass = parts[0]
+            }
+        }
+        out.close()
+    }
+}
+
+tasks.withType(JavaCompile).configureEach {
+    options.encoding = 'UTF-8'
+    options.release = 17
+    // Mixin AP：official -> mojmap-hashed 的 refmap（Forge 1.20.1 生产环境）
+    options.compilerArgs += [
+            '-AreobfSrgFile=' + mixinSrgFile.getAbsolutePath(),
+            '-AoutRefMapFile=' + project.file('build/mixinRefmap/enchanter_letter.refmap.json').getAbsolutePath()
+    ]
+}
+
+tasks.named('compileJava') {
+    dependsOn 'convertSrgForMixin'
+    // 注：refmap 不再依赖 AP 的运行时输出 —— 使用 src/main/resources/enchanter_letter.refmap.json
+    // 静态发布（含 @Shadow 字段映射，AP 只生成方法映射）。
+}
+
+jar {
+    manifest {
+        attributes([
+                // Forge 1.20.1：Mixin 的 MixinPlatformAgentDefault 只从 MANIFEST 的
+                // MixinConfigs 属性发现 mixin 配置（mods.toml 的 [[mixins]] 在此环境不生效），
+                // 缺失会导致所有 mixin 静默不加载。
+                "MixinConfigs": "enchanter_letter.mixins.json"
+        ])
+    }
+    from("LICENSE") {
+        rename { "${it}_${project.base.archivesName.get()}" }
+    }
+    // Mixin refmap 作为静态资源随包发布（src/main/resources/enchanter_letter.refmap.json）
+}
+
+publishing {
+    publications {
+        create("mavenJava", MavenPublication.class) {
+            from components.java
+        }
+    }
+    repositories {}
+}
+
+idea {
+    module {
+        downloadSources = true
+        downloadJavadoc = true
+    }
+}

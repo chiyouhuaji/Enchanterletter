@@ -1,0 +1,60 @@
+{
+  "mappings": {
+    "cn/autoforged/enchanter_letter/mixin/ChestLootMixin": {
+      "unpackLootTable(Lnet/minecraft/world/entity/player/Player;)V": "Lnet/minecraft/world/level/block/entity/RandomizableContainerBlockEntity;m_59640_(Lnet/minecraft/world/entity/player/Player;)V",
+      "lootTable": "f_59605_:Lnet/minecraft/resources/ResourceLocation;"
+    },
+    "cn/autoforged/enchanter_letter/mixin/ItemEntityMixin": {
+      "tick": "Lnet/minecraft/world/entity/item/ItemEntity;m_8119_()V",
+      "hurt": "Lnet/minecraft/world/entity/item/ItemEntity;m_6469_(Lnet/minecraft/world/damagesource/DamageSource;F)Z"
+    },
+    "cn/autoforged/enchanter_letter/mixin/PlayerMixin": {
+      "giveExperiencePoints": "Lnet/minecraft/world/entity/player/Player;m_6756_(I)V"
+    },
+    "cn/autoforged/enchanter_letter/mixin/HandItemUseMixin": {
+      "use": "Lnet/minecraft/world/item/ItemStack;m_41682_(Lnet/minecraft/world/level/Level;Lnet/minecraft/world/entity/player/Player;Lnet/minecraft/world/InteractionHand;)Lnet/minecraft/world/InteractionResultHolder;"
+    },
+    "cn/autoforged/enchanter_letter/mixin/RaidMixin": {
+      "addHeroOfTheVillage": "Lnet/minecraft/world/entity/raid/Raid;m_37726_(Lnet/minecraft/world/entity/Entity;)V"
+    },
+    "cn/autoforged/enchanter_letter/mixin/BundleWeightMixin": {
+      "getWeight": "Lnet/minecraft/world/item/BundleItem;m_150776_(Lnet/minecraft/world/item/ItemStack;)I"
+    },
+    "cn/autoforged/enchanter_letter/mixin/HopperBlockEntityMixin": {
+      "addItem(Lnet/minecraft/world/Container;Lnet/minecraft/world/entity/item/ItemEntity;)Z": "Lnet/minecraft/world/level/block/entity/HopperBlockEntity;m_59331_(Lnet/minecraft/world/Container;Lnet/minecraft/world/entity/item/ItemEntity;)Z"
+    },
+    "cn/autoforged/enchanter_letter/mixin/EnchantmentAccessMixin": {
+      "canEnchant": "Lnet/minecraft/world/item/enchantment/Enchantment;m_6081_(Lnet/minecraft/world/item/ItemStack;)Z"
+    }
+  },
+  "data": {
+    "searge": {
+      "cn/autoforged/enchanter_letter/mixin/ChestLootMixin": {
+        "unpackLootTable(Lnet/minecraft/world/entity/player/Player;)V": "Lnet/minecraft/world/level/block/entity/RandomizableContainerBlockEntity;m_59640_(Lnet/minecraft/world/entity/player/Player;)V",
+        "lootTable": "f_59605_:Lnet/minecraft/resources/ResourceLocation;"
+      },
+      "cn/autoforged/enchanter_letter/mixin/ItemEntityMixin": {
+        "tick": "Lnet/minecraft/world/entity/item/ItemEntity;m_8119_()V",
+        "hurt": "Lnet/minecraft/world/entity/item/ItemEntity;m_6469_(Lnet/minecraft/world/damagesource/DamageSource;F)Z"
+      },
+      "cn/autoforged/enchanter_letter/mixin/PlayerMixin": {
+        "giveExperiencePoints": "Lnet/minecraft/world/entity/player/Player;m_6756_(I)V"
+      },
+      "cn/autoforged/enchanter_letter/mixin/HandItemUseMixin": {
+        "use": "Lnet/minecraft/world/item/ItemStack;m_41682_(Lnet/minecraft/world/level/Level;Lnet/minecraft/world/entity/player/Player;Lnet/minecraft/world/InteractionHand;)Lnet/minecraft/world/InteractionResultHolder;"
+      },
+      "cn/autoforged/enchanter_letter/mixin/RaidMixin": {
+        "addHeroOfTheVillage": "Lnet/minecraft/world/entity/raid/Raid;m_37726_(Lnet/minecraft/world/entity/Entity;)V"
+      },
+      "cn/autoforged/enchanter_letter/mixin/BundleWeightMixin": {
+        "getWeight": "Lnet/minecraft/world/item/BundleItem;m_150776_(Lnet/minecraft/world/item/ItemStack;)I"
+      },
+      "cn/autoforged/enchanter_letter/mixin/HopperBlockEntityMixin": {
+        "addItem(Lnet/minecraft/world/Container;Lnet/minecraft/world/entity/item/ItemEntity;)Z": "Lnet/minecraft/world/level/block/entity/HopperBlockEntity;m_59331_(Lnet/minecraft/world/Container;Lnet/minecraft/world/entity/item/ItemEntity;)Z"
+      },
+      "cn/autoforged/enchanter_letter/mixin/EnchantmentAccessMixin": {
+        "canEnchant": "Lnet/minecraft/world/item/enchantment/Enchantment;m_6081_(Lnet/minecraft/world/item/ItemStack;)Z"
+      }
+    }
+  }
+}
