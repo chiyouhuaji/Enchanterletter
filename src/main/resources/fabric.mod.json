@@ -1,0 +1,32 @@
+{
+  "schemaVersion": 1,
+  "id": "${mod_id}",
+  "version": "${mod_version}",
+  "name": "魔法手札",
+  "description": "Adds magic letters that boost UsefulMagic damage. Ported to Fabric.",
+  "authors": ["AutoForged"],
+  "contact": {},
+  "license": "All Rights Reserved",
+  "icon": "assets/enchanter_letter/icon.png",
+  "environment": "*",
+  "entrypoints": {
+    "main": [
+      "cn.autoforged.enchanter_letter.UsefulMagicEnchanterLetterMod"
+    ],
+    "client": [
+      "cn.autoforged.enchanter_letter.ModClient"
+    ],
+    "fabric-datagen": [
+      "cn.autoforged.enchanter_letter.data.ModDataGenerators"
+    ]
+  },
+  "mixins": [
+    "enchanter_letter.mixins.json"
+  ],
+  "depends": {
+    "fabricloader": ">=${loader_version}",
+    "minecraft": "${minecraft_version}",
+    "java": ">=21",
+    "fabric-api": "*"
+  }
+}
