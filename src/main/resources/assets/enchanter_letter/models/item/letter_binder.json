@@ -1,0 +1,14 @@
+{
+  "parent": "minecraft:item/generated",
+  "textures": {
+    "layer0": "enchanter_letter:item/letter_binder"
+  },
+  "overrides": [
+    {
+      "predicate": {
+        "custom_model_data": 1
+      },
+      "model": "enchanter_letter:item/letter_binder_full"
+    }
+  ]
+}

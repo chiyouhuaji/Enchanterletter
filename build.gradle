@@ -1,0 +1,114 @@
+plugins {
+    id 'fabric-loom' version '1.7-SNAPSHOT'
+    id 'maven-publish'
+    id 'idea'
+}
+
+version = project.mod_version
+group = project.maven_group
+
+base {
+    archivesName = 'enchanter_letter'
+}
+
+sourceSets.main.resources {
+    srcDir('src/generated/resources')
+    exclude("**/*.bbmodel")
+    exclude("src/generated/**/.cache")
+    exclude("opencode.json")
+    exclude("INSTRUCTIONS.md")
+    exclude("mc-src/**")
+    exclude(".opencode/**")
+}
+
+repositories {
+    maven {
+        name = 'ParchmentMC'
+        url = 'https://maven.parchmentmc.org/'
+    }
+}
+
+loom {
+    accessWidenerPath = file("src/main/resources/enchanter_letter.accesswidener")
+
+    runs {
+        client {
+            client()
+            ideConfigGenerated = true
+        }
+        server {
+            server()
+            ideConfigGenerated = true
+        }
+        datagen {
+            inherit server
+            name "Data Generation"
+            vmArg "-Dfabric-api.datagen"
+            vmArg "-Dfabric-api.datagen.output-dir=${file("src/generated/resources")}"
+            vmArg "-Dfabric-api.datagen.modid=${project.mod_id}"
+            runDir "build/datagen"
+        }
+    }
+}
+
+configurations {
+    localRuntime
+    runtimeClasspath.extendsFrom localRuntime
+}
+
+dependencies {
+    minecraft "com.mojang:minecraft:${project.minecraft_version}"
+    mappings loom.layered() {
+        officialMojangMappings()
+        parchment("org.parchmentmc.data:parchment-${project.parchment_minecraft_version}:${project.parchment_mappings_version}@zip")
+    }
+
+    modImplementation "net.fabricmc:fabric-loader:${project.loader_version}"
+    modImplementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_version}"
+}
+
+processResources {
+    var replaceProperties = [
+            minecraft_version: project.minecraft_version,
+            mod_id           : project.mod_id,
+            mod_version      : project.mod_version,
+            loader_version   : project.loader_version,
+    ]
+    inputs.properties replaceProperties
+    filesMatching("fabric.mod.json") {
+        expand replaceProperties
+    }
+}
+
+tasks.withType(JavaCompile).configureEach {
+    options.encoding = 'UTF-8'
+    options.release = 17
+}
+
+java {
+    withSourcesJar()
+    sourceCompatibility = JavaVersion.VERSION_17
+    targetCompatibility = JavaVersion.VERSION_17
+}
+
+jar {
+    from("LICENSE") {
+        rename { "${it}_${project.base.archivesName.get()}" }
+    }
+}
+
+publishing {
+    publications {
+        create("mavenJava", MavenPublication.class) {
+            from components.java
+        }
+    }
+    repositories {}
+}
+
+idea {
+    module {
+        downloadSources = true
+        downloadJavadoc = true
+    }
+}

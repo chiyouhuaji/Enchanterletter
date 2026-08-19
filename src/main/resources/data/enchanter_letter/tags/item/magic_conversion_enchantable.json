@@ -1,0 +1,17 @@
+{
+  "replace": false,
+  "values": [
+    "enchanter_letter:experience_magic_letter",
+    "enchanter_letter:kill_magic_letter",
+    "enchanter_letter:stage_1_magic_letter",
+    "enchanter_letter:stage_2_magic_letter",
+    "enchanter_letter:stage_3_magic_letter",
+    "enchanter_letter:stage_4_magic_letter",
+    "enchanter_letter:stage_5_magic_letter",
+    "enchanter_letter:stage_6_magic_letter",
+    "enchanter_letter:stage_7_magic_letter",
+    "enchanter_letter:stage_8_magic_letter",
+    "enchanter_letter:stage_9_magic_letter",
+    "enchanter_letter:stage_10_magic_letter"
+  ]
+}
