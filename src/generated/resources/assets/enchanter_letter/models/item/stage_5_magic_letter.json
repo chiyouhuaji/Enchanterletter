@@ -1,0 +1,6 @@
+{
+  "parent": "minecraft:item/generated",
+  "textures": {
+    "layer0": "enchanter_letter:item/stage_5_magic_letter"
+  }
+}

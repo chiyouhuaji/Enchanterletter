@@ -1,0 +1,21 @@
+{
+  "required": true,
+  "package": "cn.autoforged.enchanter_letter.mixin",
+  "compatibilityLevel": "JAVA_21",
+  "mixins": [
+    "PlayerMixin",
+    "ItemEntityMixin",
+    "HopperBlockEntityMixin",
+    "ChestLootMixin",
+    "RaidMixin",
+    "BundleWeightMixin",
+    "EnchantmentAccessMixin",
+    "PlayerDeathEffectsMixin"
+  ],
+  "client": [
+    "HandItemUseMixin"
+  ],
+  "injectors": {
+    "defaultRequire": 1
+  }
+}
