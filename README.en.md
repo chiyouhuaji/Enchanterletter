@@ -4,6 +4,8 @@
 
 **Enchanter Letter** is a Minecraft mod supporting **Minecraft 1.21.1 / 1.20.1** with four branches for **NeoForge / Forge / Fabric**. It adds a set of growable, customizable **Enchanter Letters** and **Letter Binders**: simply keep them in your inventory, accessory slots, or a binder to gain damage bonuses and defensive attributes — no need to hold them.
 
+[简体中文](./README.md) | [English](./README.en.md)
+
 - All four branches are feature-synchronized; only the underlying implementations differ.
 - No mandatory mod dependencies. `UsefulMagic`, `Curios`, `Accessories`, `Terra Curio`, etc. are all optional, reflection-based integrations.
 - The mod works on `usefulmagic:magic` damage by default, and can be extended to any registered damage type through configuration and commands.
@@ -204,11 +206,11 @@ All mod commands require permission level 2/3/4:
 
 | Command | Description |
 | --- | --- |
-| `/lettermulti [true|false]` | Toggle multiple letters being active at once |
-| `/lettersame [true|false]` | Toggle identical letters each counting |
+| `/lettermulti [true false]` | Toggle multiple letters being active at once |
+| `/lettersame [true false]` | Toggle identical letters each counting |
 | `/letterset <type> <param> <value>` | Modify letter growth / multiplier / defensive attributes |
-| `/lettertype add|delete <damage_type>` | Add / remove default bonus damage types |
-| `/letterentity add|delete <entity_type>` | Add / remove magic conversion blacklist entities |
+| `/lettertype [add delete] <damage_type>` | Add / remove default bonus damage types |
+| `/letterentity [add delete] <entity_type>` | Add / remove magic conversion blacklist entities |
 | `/letterdamage <damage_type>` | Set the damage type of the held conversion letter |
 | `/letterback [player]` | Retrieve a player's bound letter/binder item entities |
 | `/lettercolor [red green blue]` | Query / set the glowing color |
