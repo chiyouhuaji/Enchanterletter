@@ -4,6 +4,8 @@
 
 《魔法手札》是一个支持 **Minecraft 1.21.1 / 1.20.1** 的模组，同时提供 **NeoForge / Forge / Fabric** 四个分支。模组添加了一系列可成长、可定制的 **魔法手札（Enchanter Letter）** 与 **手札合订本（Letter Binder）**：把它们放进背包、饰品栏或合订本中即可获得伤害增幅与防御属性，无需手持。
 
+[简体中文](./README.md) | [English](./README.en.md)
+
 - 四个分支功能完全同步，仅底层实现不同。
 - 无强制模组依赖，`UsefulMagic`、`Curios`、`Accessories`、`Terra Curio` 等均为可选的反射兼容联动。
 - 默认对 `usefulmagic:magic` 伤害类型生效，也可通过配置与命令扩展支持任意已注册伤害类型。
@@ -204,11 +206,11 @@ gradlew.bat build
 
 | 命令 | 作用 |
 | --- | --- |
-| `/lettermulti [true|false]` | 开关多张手札同时生效 |
-| `/lettersame [true|false]` | 开关完全相同手札重复生效 |
+| `/lettermulti [true false]` | 开关多张手札同时生效 |
+| `/lettersame [true false]` | 开关完全相同手札重复生效 |
 | `/letterset <type> <param> <value>` | 修改手札成长 / 倍率 / 防御属性 |
-| `/lettertype add|delete <伤害类型>` | 增删默认增益伤害类型 |
-| `/letterentity add|delete <实体类型>` | 增删魔法转化黑名单实体 |
+| `/lettertype [add delete] <伤害类型>` | 增删默认增益伤害类型 |
+| `/letterentity [add delete] <实体类型>` | 增删魔法转化黑名单实体 |
 | `/letterdamage <伤害类型>` | 设置手持转化手札的伤害类型 |
 | `/letterback [玩家]` | 召回绑定的手札/合订本掉落物 |
 | `/lettercolor [红 绿 蓝]` | 查询 / 设置光灵发光颜色 |
