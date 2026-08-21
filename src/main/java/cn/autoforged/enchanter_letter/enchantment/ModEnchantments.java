@@ -16,13 +16,13 @@ import net.minecraft.world.item.enchantment.EnchantmentCategory;
 public class ModEnchantments {
     public static final String USEFULMAGIC_MAGIC = "usefulmagic:magic";
 
-    /** 魔法转化附魔（1.20.1 代码注册；构造器为 protected，使用匿名子类）。 */
+    /** 魔法转化附魔（1.20.1 代码注册；构造器为 protected，使用匿名子类）。不限制适用范围。 */
     public static Enchantment MAGIC_CONVERSION;
 
-    /** 光灵：持有者（玩家/生物）发光，颜色由 NBT glow_color 控制。允许本模组所有手札/合订本。 */
+    /** 光灵：持有者（玩家/生物）发光，颜色由 NBT glow_color 控制。不限制适用范围。 */
     public static Enchantment GLOWING;
 
-    /** 魔法绑定：死亡不掉落（与消失诅咒排斥，同时存在时魔法绑定失效）。允许任意物品。 */
+    /** 魔法绑定：死亡不掉落（与消失诅咒排斥，同时存在时魔法绑定失效）。不限制适用范围。 */
     public static Enchantment MAGIC_BINDING;
 
     public static void register() {
@@ -32,16 +32,11 @@ public class ModEnchantments {
                         new EquipmentSlot[]{EquipmentSlot.MAINHAND, EquipmentSlot.OFFHAND}) {
                     /**
                      * 1.20.1 移植：附魔台/铁砧/指令均通过 canEnchant 判定可附魔物品。
-                     * 等效 1.21.1 数据包附魔的 supported_items 标签
-                     * #enchanter_letter:magic_conversion_enchantable（经验/杀戮/阶段 1-10 手札），
-                     * 与 1.21.1 完全一致，否则手札无法附上魔法转化附魔。
+                     * 按需求不再对本模组附魔限制适用范围，任意物品均可附魔。
                      */
                     @Override
                     public boolean canEnchant(ItemStack stack) {
-                        net.minecraft.world.item.Item item = stack.getItem();
-                        return item == cn.autoforged.enchanter_letter.item.ModItems.EXPERIENCE_MAGIC_LETTER.get()
-                                || item == cn.autoforged.enchanter_letter.item.ModItems.KILL_MAGIC_LETTER.get()
-                                || item instanceof cn.autoforged.enchanter_letter.item.StageMagicLetterItem;
+                        return true;
                     }
                 });
         GLOWING = Registry.register(BuiltInRegistries.ENCHANTMENT,
@@ -50,9 +45,7 @@ public class ModEnchantments {
                         new EquipmentSlot[]{EquipmentSlot.MAINHAND, EquipmentSlot.OFFHAND}) {
                     @Override
                     public boolean canEnchant(ItemStack stack) {
-                        net.minecraft.world.item.Item item = stack.getItem();
-                        return item instanceof cn.autoforged.enchanter_letter.item.MagicLetterItem
-                                || item instanceof cn.autoforged.enchanter_letter.item.LetterBinderItem;
+                        return true;
                     }
                 });
         MAGIC_BINDING = Registry.register(BuiltInRegistries.ENCHANTMENT,
@@ -61,21 +54,7 @@ public class ModEnchantments {
                         new EquipmentSlot[]{EquipmentSlot.MAINHAND, EquipmentSlot.OFFHAND}) {
                     @Override
                     public boolean canEnchant(ItemStack stack) {
-                        if (stack.isEmpty()) return false;
-                        net.minecraft.world.item.Item item = stack.getItem();
-                        if (item instanceof cn.autoforged.enchanter_letter.item.MagicLetterItem
-                                || item instanceof cn.autoforged.enchanter_letter.item.LetterBinderItem) {
-                            return true;
-                        }
-                        // 已注册到饰品模组（Curios / Accessories）物品标签
-                        try {
-                            return stack.getTags().anyMatch(tag -> {
-                                String ns = tag.location().getNamespace();
-                                return "curios".equals(ns) || "accessories".equals(ns);
-                            });
-                        } catch (Exception ignored) {
-                            return false;
-                        }
+                        return true;
                     }
                 });
     }

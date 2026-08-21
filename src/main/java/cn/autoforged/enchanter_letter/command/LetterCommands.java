@@ -206,6 +206,24 @@ public class LetterCommands {
                                 .then(Commands.argument("blue", IntegerArgumentType.integer(0, 255))
                                         .executes(LetterCommands::setLetterColor)))));
 
+        // /letterenchanted —— 附魔书战利品附加开关与概率（true/false/glowing/binding/conversion，权限 2/3/4）
+        dispatcher.register(Commands.literal("letterenchanted")
+                .requires(source -> source.hasPermission(2))
+                .executes(LetterCommands::showEnchanted)
+                .then(Commands.literal("true")
+                        .executes(ctx -> setEnchantedEnabled(ctx, true)))
+                .then(Commands.literal("false")
+                        .executes(ctx -> setEnchantedEnabled(ctx, false)))
+                .then(Commands.literal("glowing")
+                        .then(Commands.argument("chance", DoubleArgumentType.doubleArg(0.0, 1.0))
+                                .executes(ctx -> setEnchantedChance(ctx, "glowing"))))
+                .then(Commands.literal("binding")
+                        .then(Commands.argument("chance", DoubleArgumentType.doubleArg(0.0, 1.0))
+                                .executes(ctx -> setEnchantedChance(ctx, "binding"))))
+                .then(Commands.literal("conversion")
+                        .then(Commands.argument("chance", DoubleArgumentType.doubleArg(0.0, 1.0))
+                                .executes(ctx -> setEnchantedChance(ctx, "conversion")))));
+
         // /letterclean —— 定时清理绑定掉落物（on/off/time/add/delete/all/uuid，权限 2/3/4）
         dispatcher.register(Commands.literal("letterclean")
                 .requires(source -> source.hasPermission(2))
@@ -218,10 +236,18 @@ public class LetterCommands {
                         .then(Commands.argument("value", DoubleArgumentType.doubleArg(1.0))
                                 .executes(LetterCommands::setCleanupInterval)))
                 .then(Commands.literal("add")
+                        .then(Commands.literal("allbinding")
+                                .executes(ctx -> setCleanupAllBinding(ctx, true)))
+                        .then(Commands.literal("allnormal")
+                                .executes(ctx -> setCleanupAllNormal(ctx, true)))
                         .then(Commands.argument("uuid", StringArgumentType.word())
                                 .suggests(PLAYER_OR_UUID_SUGGESTIONS)
                                 .executes(LetterCommands::addCleanupUuid)))
                 .then(Commands.literal("delete")
+                        .then(Commands.literal("allbinding")
+                                .executes(ctx -> setCleanupAllBinding(ctx, false)))
+                        .then(Commands.literal("allnormal")
+                                .executes(ctx -> setCleanupAllNormal(ctx, false)))
                         .then(Commands.argument("uuid", StringArgumentType.word())
                                 .suggests(PLAYER_OR_UUID_SUGGESTIONS)
                                 .executes(LetterCommands::deleteCleanupUuid)))
@@ -273,6 +299,7 @@ public class LetterCommands {
                         .then(Commands.argument("player", StringArgumentType.word())
                                 .suggests(PLAYER_OR_UUID_SUGGESTIONS)
                                 .executes(LetterCommands::deleteBindingWhitelist))));
+
     }
 
     // ==================== /lettercolor ====================
@@ -316,13 +343,61 @@ public class LetterCommands {
         return 1;
     }
 
+    // ==================== /letterenchanted ====================
+
+    private static int showEnchanted(CommandContext<CommandSourceStack> context) {
+        context.getSource().sendSuccess(() -> Component.translatable(
+                "command.enchanter_letter.letterenchanted.status",
+                stateComponent(ModConfig.isLetterEnchantedEnabled()),
+                ModConfig.getLetterEnchantedGlowingChance(),
+                ModConfig.getLetterEnchantedMagicBindingChance(),
+                ModConfig.getLetterEnchantedMagicConversionChance()), true);
+        return 1;
+    }
+
+    private static int setEnchantedEnabled(CommandContext<CommandSourceStack> context, boolean enabled) {
+        ModConfig.setLetterEnchantedEnabled(enabled);
+        ModConfig.save();
+        context.getSource().sendSuccess(() -> Component.translatable(
+                "command.enchanter_letter.letterenchanted.enabled", stateComponent(enabled)), true);
+        return 1;
+    }
+
+    private static int setEnchantedChance(CommandContext<CommandSourceStack> context, String type) {
+        double chance = DoubleArgumentType.getDouble(context, "chance");
+        String key;
+        switch (type) {
+            case "glowing":
+                ModConfig.setLetterEnchantedGlowingChance(chance);
+                key = "command.enchanter_letter.letterenchanted.glowing";
+                break;
+            case "binding":
+                ModConfig.setLetterEnchantedMagicBindingChance(chance);
+                key = "command.enchanter_letter.letterenchanted.binding";
+                break;
+            case "conversion":
+                ModConfig.setLetterEnchantedMagicConversionChance(chance);
+                key = "command.enchanter_letter.letterenchanted.conversion";
+                break;
+            default:
+                return 0;
+        }
+        ModConfig.save();
+        String finalKey = key;
+        context.getSource().sendSuccess(() -> Component.translatable(
+                "command.enchanter_letter.letterenchanted.chance_set", Component.translatable(finalKey), chance), true);
+        return 1;
+    }
+
     // ==================== /letterclean ====================
 
     private static int showCleanup(CommandContext<CommandSourceStack> context) {
         ModConfig.LetterCleanupConfig cfg = ModConfig.getInstance().letterCleanup;
         context.getSource().sendSuccess(() -> Component.translatable(
                 "command.enchanter_letter.letterclean.status",
-                stateComponent(cfg.enabled), cfg.intervalSeconds, String.join(", ", cfg.targetUuids)), true);
+                stateComponent(cfg.enabled), cfg.intervalSeconds,
+                String.join(", ", cfg.targetUuids),
+                stateComponent(cfg.cleanAllBinding), stateComponent(cfg.cleanAllNormal)), true);
         return 1;
     }
 
@@ -375,6 +450,22 @@ public class LetterCommands {
         ModConfig.save();
         context.getSource().sendSuccess(() -> Component.translatable(
                 "command.enchanter_letter.letterclean.uuid_deleted", s), true);
+        return 1;
+    }
+
+    private static int setCleanupAllBinding(CommandContext<CommandSourceStack> context, boolean enabled) {
+        ModConfig.getInstance().letterCleanup.cleanAllBinding = enabled;
+        ModConfig.save();
+        context.getSource().sendSuccess(() -> Component.translatable(
+                "command.enchanter_letter.letterclean.allbinding_set", stateComponent(enabled)), true);
+        return 1;
+    }
+
+    private static int setCleanupAllNormal(CommandContext<CommandSourceStack> context, boolean enabled) {
+        ModConfig.getInstance().letterCleanup.cleanAllNormal = enabled;
+        ModConfig.save();
+        context.getSource().sendSuccess(() -> Component.translatable(
+                "command.enchanter_letter.letterclean.allnormal_set", stateComponent(enabled)), true);
         return 1;
     }
 
