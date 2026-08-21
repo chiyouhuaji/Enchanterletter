@@ -1,8 +1,8 @@
-# 魔法手札（Enchanter Letter / Magic Letter）
+# 魔法手札（Enchanter Letter）
 
 [![License: MPL 2.0](https://img.shields.io/badge/License-MPL_2.0-brightgreen.svg)](https://opensource.org/licenses/MPL-2.0)
 
-《魔法手札》是一个支持 **Minecraft 1.21.1 / 1.20.1** 的模组，同时提供 **NeoForge / Forge / Fabric** 四个分支。模组添加了一系列可成长、可定制的 **魔法手札（Magic Letter）** 与 **手札合订本（Letter Binder）**：把它们放进背包、饰品栏或合订本中即可获得伤害增幅与防御属性，无需手持。
+《魔法手札》是一个支持 **Minecraft 1.21.1 / 1.20.1** 的模组，同时提供 **NeoForge / Forge / Fabric** 四个分支。模组添加了一系列可成长、可定制的 **魔法手札（Enchanter Letter）** 与 **手札合订本（Letter Binder）**：把它们放进背包、饰品栏或合订本中即可获得伤害增幅与防御属性，无需手持。
 
 - 四个分支功能完全同步，仅底层实现不同。
 - 无强制模组依赖，`UsefulMagic`、`Curios`、`Accessories`、`Terra Curio` 等均为可选的反射兼容联动。
@@ -189,10 +189,12 @@ gradlew.bat build
 
 - `config/enchanter_letter.json`：服务端 / 主配置。
   - 各手札成长数值、阶段手札倍率、堆叠规则、魔法转化黑名单、默认伤害类型、光灵默认颜色、定时清理、重生返还延迟、抗性上限等。
+  - `letter_cleanup`：除 `target_uuids` UUID 名单外，支持 `clean_all_binding`（清理所有已绑定）与 `clean_all_normal`（清理所有未绑定）手札/合订本掉落物，二者可同时开启。
+  - `letter_enchanted`：附魔书附加逻辑开关与三种附魔出现概率，默认 `glowing_chance` 0.1、`magic_binding_chance` 0.08、`magic_conversion_chance` 0.0。
 - `config/enchanter_letter_client.json`：客户端配置。
   - HUD 默认显示状态与切换按键（默认 `N`，GLFW 键码 78）。
 
-修改配置文件需重启游戏 / 服务端生效；通过命令修改会立即生效并写回配置文件。
+修改配置文件需重启游戏 / 服务端生效；通过命令修改会立即生效并写回配置文件（`/letterenchanted` 与 `/letterclean` 均支持）。
 
 ---
 
@@ -210,7 +212,8 @@ gradlew.bat build
 | `/letterdamage <伤害类型>` | 设置手持转化手札的伤害类型 |
 | `/letterback [玩家]` | 召回绑定的手札/合订本掉落物 |
 | `/lettercolor [红 绿 蓝]` | 查询 / 设置光灵发光颜色 |
-| `/letterclean ...` | 查询 / 开关 / 配置定时清理 |
+| `/letterenchanted [true\|false\|glowing <p>\|binding <p>\|conversion <p>]` | 查询 / 开关附魔书附加逻辑，调整三种附魔概率 |
+| `/letterclean ...` | 查询 / 开关 / 配置定时清理（含 `allbinding` / `allnormal` 全量清理） |
 | `/letterdelay [tick]` | 查询 / 设置重生返还延迟 |
 | `/letterresistance ...` | 查询 / 开关 / 设置抗性减免上限 |
 | `/lettervanish ...` | 查询 / 开关强制消失机制 |

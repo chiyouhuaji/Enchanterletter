@@ -3,7 +3,7 @@
   "id": "${mod_id}",
   "version": "${mod_version}",
   "name": "魔法手札",
-  "description": "Adds magic letters that boost UsefulMagic damage. Ported to Fabric.",
+  "description": "Adds Enchanter Letters that boost UsefulMagic damage. Ported to Fabric.",
   "authors": ["AutoForged"],
   "contact": {},
   "license": "All Rights Reserved",
