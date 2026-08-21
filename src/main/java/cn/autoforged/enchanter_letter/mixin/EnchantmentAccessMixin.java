@@ -12,10 +12,11 @@ import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 /**
- * 附魔放行：
- * - 魔法绑定（magic_binding）：不限制模组物品，任意物品均可附魔（附魔台/铁砧/命令）；
- * - 消失诅咒（vanishing_curse）：允许附魔到本模组所有物品（手札/手札合订本）。
- * 光灵（glowing）由 supported_items 标签控制，无需放行。
+ * 附魔适用范围放行：
+ * - 本模组添加/修改的附魔（魔法转化/光灵/魔法绑定）：不再限制可附魔物品，
+ *   任意物品均可附魔（附魔台/铁砧/命令）；
+ * - 消失诅咒（vanishing_curse，原版附魔附加设定）：仍只放行到本模组物品
+ *   （手札/手札合订本）。
  */
 @Mixin(Enchantment.class)
 public class EnchantmentAccessMixin {
@@ -24,35 +25,51 @@ public class EnchantmentAccessMixin {
     private void enchanterLetter$allowEnchant(ItemStack stack, CallbackInfoReturnable<Boolean> cir) {
         if (cir.getReturnValueZ()) return;
         Enchantment self = (Enchantment) (Object) this;
-        String key = "";
-        if (self.description().getContents() instanceof TranslatableContents contents) {
-            key = contents.getKey();
-        }
-        if ("enchantment.enchanter_letter.magic_binding".equals(key)) {
-            // 魔法绑定：只允许附魔到本模组物品，或已注册到饰品模组（Curios/Accessories）物品标签的物品
-            if (isModItem(stack) || hasAccessoryTag(stack)) {
-                cir.setReturnValue(true);
-            }
+        if (isOurModEnchantment(self)) {
+            cir.setReturnValue(true);
             return;
         }
-        if ("enchantment.minecraft.vanishing_curse".equals(key)) {
-            if (stack.getItem() instanceof MagicLetterItem || stack.getItem() instanceof LetterBinderItem) {
+        if (isVanishingCurse(self)) {
+            if (isModItem(stack)) {
                 cir.setReturnValue(true);
             }
         }
+    }
+
+    @Inject(method = "isSupportedItem", at = @At("RETURN"), cancellable = true)
+    private void enchanterLetter$allowSupportedItem(ItemStack stack, CallbackInfoReturnable<Boolean> cir) {
+        if (cir.getReturnValueZ()) return;
+        Enchantment self = (Enchantment) (Object) this;
+        if (isOurModEnchantment(self)) {
+            cir.setReturnValue(true);
+            return;
+        }
+        if (isVanishingCurse(self) && isModItem(stack)) {
+            cir.setReturnValue(true);
+        }
+    }
+
+    /** 是否为模组添加/修改的附魔（魔法转化/光灵/魔法绑定），这些附魔不再限制适用范围。 */
+    private static boolean isOurModEnchantment(Enchantment self) {
+        String key = getEnchantmentKey(self);
+        return "enchantment.enchanter_letter.magic_conversion".equals(key)
+                || "enchantment.enchanter_letter.glowing".equals(key)
+                || "enchantment.enchanter_letter.magic_binding".equals(key);
+    }
+
+    private static boolean isVanishingCurse(Enchantment self) {
+        return "enchantment.minecraft.vanishing_curse".equals(getEnchantmentKey(self));
+    }
+
+    private static String getEnchantmentKey(Enchantment self) {
+        if (self.description().getContents() instanceof TranslatableContents contents) {
+            return contents.getKey();
+        }
+        return "";
     }
 
     /** 是否为本模组物品（手札/手札合订本）。 */
     private static boolean isModItem(ItemStack stack) {
         return stack.getItem() instanceof MagicLetterItem || stack.getItem() instanceof LetterBinderItem;
-    }
-
-    /** 是否注册到饰品模组（Curios / Accessories）的物品标签，例如 #curios:*、#accessories:*。 */
-    private static boolean hasAccessoryTag(ItemStack stack) {
-        return stack.getItemHolder().tags()
-                .anyMatch(tag -> {
-                    String ns = tag.location().getNamespace();
-                    return "curios".equals(ns) || "accessories".equals(ns);
-                });
     }
 }

@@ -248,14 +248,22 @@ public class LetterEntityEffects {
 
     private static void cleanupBoundDrops(MinecraftServer server) {
         ModConfig.LetterCleanupConfig cfg = ModConfig.getInstance().letterCleanup;
-        if (!cfg.enabled || cfg.targetUuids.isEmpty()) return;
+        if (!cfg.enabled) return;
         Set<String> targets = new HashSet<>(cfg.targetUuids);
+        boolean cleanAllBinding = cfg.cleanAllBinding;
+        boolean cleanAllNormal = cfg.cleanAllNormal;
+        if (targets.isEmpty() && !cleanAllBinding && !cleanAllNormal) return;
         for (ServerLevel level : server.getAllLevels()) {
             for (ItemEntity itemEntity : level.getEntities(net.minecraft.world.level.entity.EntityTypeTest.forClass(net.minecraft.world.entity.item.ItemEntity.class), e -> true)) {
                 ItemStack stack = itemEntity.getItem();
                 if (stack.isEmpty() || !ModCommonEvents.isOurModItem(stack)) continue;
                 Optional<UUID> bound = stack.get(ModDataComponents.BOUND_PLAYER.get());
-                if (bound != null && bound.isPresent() && targets.contains(bound.get().toString())) {
+                boolean hasBound = bound != null && bound.isPresent();
+                if (cleanAllBinding && hasBound) {
+                    itemEntity.discard();
+                } else if (cleanAllNormal && !hasBound) {
+                    itemEntity.discard();
+                } else if (hasBound && targets.contains(bound.get().toString())) {
                     itemEntity.discard();
                 }
             }

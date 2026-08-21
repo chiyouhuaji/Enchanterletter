@@ -10,6 +10,9 @@
     "RaidMixin",
     "BundleWeightMixin",
     "EnchantmentAccessMixin",
+    "EnchantmentHelperMixin",
+    "EnchantRandomlyFunctionMixin",
+    "LootTableMixin",
     "PlayerDeathEffectsMixin"
   ],
   "client": [
