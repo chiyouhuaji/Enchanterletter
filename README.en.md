@@ -1,8 +1,8 @@
-# Enchanter Letter 
+# Enchanter Letter
 
 [![License: MPL 2.0](https://img.shields.io/badge/License-MPL_2.0-brightgreen.svg)](https://opensource.org/licenses/MPL-2.0)
 
-**Enchanter Letter (Magic Letter)** is a Minecraft mod supporting **Minecraft 1.21.1 / 1.20.1** with four branches for **NeoForge / Forge / Fabric**. It adds a set of growable, customizable **Magic Letters** and **Letter Binders**: simply keep them in your inventory, accessory slots, or a binder to gain damage bonuses and defensive attributes — no need to hold them.
+**Enchanter Letter** is a Minecraft mod supporting **Minecraft 1.21.1 / 1.20.1** with four branches for **NeoForge / Forge / Fabric**. It adds a set of growable, customizable **Enchanter Letters** and **Letter Binders**: simply keep them in your inventory, accessory slots, or a binder to gain damage bonuses and defensive attributes — no need to hold them.
 
 - All four branches are feature-synchronized; only the underlying implementations differ.
 - No mandatory mod dependencies. `UsefulMagic`, `Curios`, `Accessories`, `Terra Curio`, etc. are all optional, reflection-based integrations.
@@ -189,10 +189,12 @@ Generated after the first launch:
 
 - `config/enchanter_letter.json`: server / main configuration.
   - Letter growth values, stage letter multipliers, stacking rules, magic conversion blacklist, default damage types, default glow colors, scheduled cleanup, respawn restore delay, resistance cap, etc.
+  - `letter_cleanup`: in addition to the `target_uuids` UUID list, supports `clean_all_binding` (clean all bound) and `clean_all_normal` (clean all unbound) letter/binder drops; both can be enabled at the same time.
+  - `letter_enchanted`: toggle for the enchanted book injection and the appearance probabilities of the three enchantments. Defaults: `glowing_chance` 0.1, `magic_binding_chance` 0.08, `magic_conversion_chance` 0.0.
 - `config/enchanter_letter_client.json`: client configuration.
   - HUD default visibility and toggle key (default `N`, GLFW key code 78).
 
-Changing the config files requires restarting the game/server. Changes made through commands take effect immediately and are written back to the config file.
+Changing the config files requires restarting the game/server. Changes made through commands take effect immediately and are written back to the config file (both `/letterenchanted` and `/letterclean` support this).
 
 ---
 
@@ -210,7 +212,8 @@ All mod commands require permission level 2/3/4:
 | `/letterdamage <damage_type>` | Set the damage type of the held conversion letter |
 | `/letterback [player]` | Retrieve a player's bound letter/binder item entities |
 | `/lettercolor [red green blue]` | Query / set the glowing color |
-| `/letterclean ...` | Query / toggle / configure scheduled cleanup |
+| `/letterenchanted [true\|false\|glowing <p>\|binding <p>\|conversion <p>]` | Query / toggle the enchanted book injection and adjust the three enchantment probabilities |
+| `/letterclean ...` | Query / toggle / configure scheduled cleanup (including `allbinding` / `allnormal` bulk cleanup) |
 | `/letterdelay [tick]` | Query / set the respawn restore delay |
 | `/letterresistance ...` | Query / toggle / set the resistance cap |
 | `/lettervanish ...` | Query / toggle the forced vanishing mechanic |
@@ -235,5 +238,3 @@ Users and secondary developers are asked to follow these basic rules:
 3. **Source availability**: If you distribute binaries / build artifacts, you must also provide a way to obtain the corresponding source code (e.g. a repository link or source archive).
 4. **No strong copyleft on the whole pack**: MPL-2.0 is a relatively permissive file-level license. It does not force an entire modpack or addon to be open source; however, files derived from this project must still follow these rules.
 5. **Disclaimer**: This project is provided "AS IS", without warranty of any kind, express or implied.
-
-> Before publishing to GitHub, make sure the repository root contains the full **MPL-2.0 LICENSE file**, and update the license identifiers in each branch's build metadata accordingly.
