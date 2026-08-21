@@ -6,11 +6,11 @@ plugins {
     id 'net.minecraftforge.gradle' version '[6.0,6.2)'
 }
 
-version = project.mod_version
+version = "${project.minecraft_version}-${project.mod_version}"
 group = project.maven_group
 
 base {
-    archivesName = 'enchanter_letter'
+    archivesName = 'enchanter_letter_forge'
 }
 
 java.toolchain.languageVersion = JavaLanguageVersion.of(17)

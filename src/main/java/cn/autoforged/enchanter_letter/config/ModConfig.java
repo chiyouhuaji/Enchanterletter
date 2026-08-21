@@ -69,6 +69,9 @@ public class ModConfig {
     @SerializedName("letter_binding")
     public LetterBindingConfig letterBinding = new LetterBindingConfig();
 
+    @SerializedName("letter_enchanted")
+    public LetterEnchantedConfig letterEnchanted = new LetterEnchantedConfig();
+
     public static class ExperienceLetterConfig {
         @SerializedName("exp_per_level")
         public double expPerLevel = 1000.0;
@@ -346,7 +349,8 @@ public class ModConfig {
     }
 
     /**
-     * 定时清理（/letterclean）：清理绑定到指定 UUID 的手札/合订本掉落物。
+     * 定时清理（/letterclean）：清理绑定到指定 UUID 的手札/合订本掉落物，
+     * 也可通过 allbinding/allnormal 清理所有绑定/未绑定掉落物。
      * 默认每 600 秒（10 分钟）清理一次零 UUID（00000000-...）掉落物。
      */
     public static class LetterCleanupConfig {
@@ -361,6 +365,14 @@ public class ModConfig {
         {
             targetUuids.add("00000000-0000-0000-0000-000000000000");
         }
+
+        /** 清理所有已绑定（有绑定 UUID）的手札/合订本掉落物。 */
+        @SerializedName("clean_all_binding")
+        public boolean cleanAllBinding = false;
+
+        /** 清理所有未绑定（无绑定 UUID）的手札/合订本掉落物。 */
+        @SerializedName("clean_all_normal")
+        public boolean cleanAllNormal = false;
     }
 
     /**
@@ -402,6 +414,29 @@ public class ModConfig {
 
         @SerializedName("limit")
         public double limit = 0.8;
+    }
+
+    /**
+     * 允许附魔书战利品获得附魔总开关与各附魔出现概率：
+     * 开启后，任意会产生附魔书的战利品表都有几率出现光灵/魔法绑定/魔法转化；
+     * 每个附魔独立按 chance 概率附加到附魔书上。关闭后均不出现。
+     * 铁砧与命令不受此开关限制；消失诅咒为原版附加设定，不在此配置中。
+     */
+    public static class LetterEnchantedConfig {
+        @SerializedName("enabled")
+        public boolean enabled = true;
+
+        /** 光灵出现在附魔书上的概率（0.0~1.0，默认 0.1）。 */
+        @SerializedName("glowing_chance")
+        public double glowingChance = 0.1;
+
+        /** 魔法绑定出现在附魔书上的概率（0.0~1.0，默认 0.08）。 */
+        @SerializedName("magic_binding_chance")
+        public double magicBindingChance = 0.08;
+
+        /** 魔法转化出现在附魔书上的概率（0.0~1.0，默认 0.0）。 */
+        @SerializedName("magic_conversion_chance")
+        public double magicConversionChance = 0.0;
     }
 
     private transient String cachedBonusRaw;
@@ -456,6 +491,53 @@ public class ModConfig {
 
     private static ModConfig instance;
 
+    /** 启动时读取一次的附魔生存获得总开关缓存。 */
+    private static boolean letterEnchantedEnabled = true;
+
+    /** 启动时读取一次的各附魔书出现概率缓存。 */
+    private static double letterEnchantedGlowingChance = 0.1;
+    private static double letterEnchantedMagicBindingChance = 0.08;
+    private static double letterEnchantedMagicConversionChance = 0.0;
+
+    public static boolean isLetterEnchantedEnabled() {
+        return letterEnchantedEnabled;
+    }
+
+    public static double getLetterEnchantedGlowingChance() {
+        return letterEnchantedGlowingChance;
+    }
+
+    public static double getLetterEnchantedMagicBindingChance() {
+        return letterEnchantedMagicBindingChance;
+    }
+
+    public static double getLetterEnchantedMagicConversionChance() {
+        return letterEnchantedMagicConversionChance;
+    }
+
+    public static void setLetterEnchantedEnabled(boolean enabled) {
+        getInstance().letterEnchanted.enabled = enabled;
+        letterEnchantedEnabled = enabled;
+    }
+
+    public static void setLetterEnchantedGlowingChance(double chance) {
+        double value = clampChance(chance, 0.1);
+        getInstance().letterEnchanted.glowingChance = value;
+        letterEnchantedGlowingChance = value;
+    }
+
+    public static void setLetterEnchantedMagicBindingChance(double chance) {
+        double value = clampChance(chance, 0.08);
+        getInstance().letterEnchanted.magicBindingChance = value;
+        letterEnchantedMagicBindingChance = value;
+    }
+
+    public static void setLetterEnchantedMagicConversionChance(double chance) {
+        double value = clampChance(chance, 0.0);
+        getInstance().letterEnchanted.magicConversionChance = value;
+        letterEnchantedMagicConversionChance = value;
+    }
+
     public static ModConfig getInstance() {
         if (instance == null) {
             instance = new ModConfig();
@@ -479,6 +561,15 @@ public class ModConfig {
         } catch (IOException e) {
             instance = new ModConfig();
         }
+        letterEnchantedEnabled = instance.letterEnchanted.enabled;
+        letterEnchantedGlowingChance = clampChance(instance.letterEnchanted.glowingChance, 0.1);
+        letterEnchantedMagicBindingChance = clampChance(instance.letterEnchanted.magicBindingChance, 0.08);
+        letterEnchantedMagicConversionChance = clampChance(instance.letterEnchanted.magicConversionChance, 0.0);
+    }
+
+    private static double clampChance(double value, double fallback) {
+        if (!Double.isFinite(value)) return fallback;
+        return Math.max(0.0, Math.min(1.0, value));
     }
 
     public static void save() {

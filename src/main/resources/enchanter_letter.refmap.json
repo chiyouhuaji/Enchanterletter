@@ -25,6 +25,15 @@
     },
     "cn/autoforged/enchanter_letter/mixin/EnchantmentAccessMixin": {
       "canEnchant": "Lnet/minecraft/world/item/enchantment/Enchantment;m_6081_(Lnet/minecraft/world/item/ItemStack;)Z"
+    },
+    "cn/autoforged/enchanter_letter/mixin/EnchantmentTableFilterMixin": {
+      "getAvailableEnchantmentResults": "Lnet/minecraft/world/item/enchantment/EnchantmentHelper;m_44817_(ILnet/minecraft/world/item/ItemStack;Z)Ljava/util/List;"
+    },
+    "cn/autoforged/enchanter_letter/mixin/EnchantRandomlyFunctionMixin": {
+      "run": "Lnet/minecraft/world/level/storage/loot/functions/EnchantRandomlyFunction;m_7372_(Lnet/minecraft/world/item/ItemStack;Lnet/minecraft/world/level/storage/loot/LootContext;)Lnet/minecraft/world/item/ItemStack;"
+    },
+    "cn/autoforged/enchanter_letter/mixin/LootTableMixin": {
+      "getRandomItems(Lnet/minecraft/world/level/storage/loot/LootContext;)Lit/unimi/dsi/fastutil/objects/ObjectArrayList;": "Lnet/minecraft/world/level/storage/loot/LootTable;m_230922_(Lnet/minecraft/world/level/storage/loot/LootContext;)Lit/unimi/dsi/fastutil/objects/ObjectArrayList;"
     }
   },
   "data": {
@@ -54,6 +63,15 @@
       },
       "cn/autoforged/enchanter_letter/mixin/EnchantmentAccessMixin": {
         "canEnchant": "Lnet/minecraft/world/item/enchantment/Enchantment;m_6081_(Lnet/minecraft/world/item/ItemStack;)Z"
+      },
+      "cn/autoforged/enchanter_letter/mixin/EnchantmentTableFilterMixin": {
+        "getAvailableEnchantmentResults": "Lnet/minecraft/world/item/enchantment/EnchantmentHelper;m_44817_(ILnet/minecraft/world/item/ItemStack;Z)Ljava/util/List;"
+      },
+      "cn/autoforged/enchanter_letter/mixin/EnchantRandomlyFunctionMixin": {
+        "run": "Lnet/minecraft/world/level/storage/loot/functions/EnchantRandomlyFunction;m_7372_(Lnet/minecraft/world/item/ItemStack;Lnet/minecraft/world/level/storage/loot/LootContext;)Lnet/minecraft/world/item/ItemStack;"
+      },
+      "cn/autoforged/enchanter_letter/mixin/LootTableMixin": {
+        "getRandomItems(Lnet/minecraft/world/level/storage/loot/LootContext;)Lit/unimi/dsi/fastutil/objects/ObjectArrayList;": "Lnet/minecraft/world/level/storage/loot/LootTable;m_230922_(Lnet/minecraft/world/level/storage/loot/LootContext;)Lit/unimi/dsi/fastutil/objects/ObjectArrayList;"
       }
     }
   }

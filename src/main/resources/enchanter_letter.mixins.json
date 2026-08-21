@@ -7,6 +7,9 @@
   "mixins": [
     "PlayerMixin",
     "EnchantmentAccessMixin",
+    "EnchantmentTableFilterMixin",
+    "EnchantRandomlyFunctionMixin",
+    "LootTableMixin",
     "ItemEntityMixin",
     "HopperBlockEntityMixin",
     "ChestLootMixin",
