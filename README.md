@@ -4,6 +4,8 @@
 
 《魔法手札》是一个支持 **Minecraft 1.21.1 / 1.20.1** 的模组，同时提供 **NeoForge / Forge / Fabric** 四个分支。模组添加了一系列可成长、可定制的 **魔法手札（Enchanter Letter）** 与 **手札合订本（Letter Binder）**：把它们放进背包、饰品栏或合订本中即可获得伤害增幅与防御属性，无需手持。
 
+[简体中文](./README.md) | [English](./README.en.md)
+
 - 四个分支功能完全同步，仅底层实现不同。
 - 无强制模组依赖，`UsefulMagic`、`Curios`、`Accessories`、`Terra Curio` 等均为可选的反射兼容联动。
 - 默认对 `usefulmagic:magic` 伤害类型生效，也可通过配置与命令扩展支持任意已注册伤害类型。
