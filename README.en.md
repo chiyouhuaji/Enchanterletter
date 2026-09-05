@@ -46,6 +46,8 @@ Each letter has a level (Lv). Higher levels grant stronger bonuses, and levels a
 
 All values above are configuration defaults and are adjustable, except for the Custom Letter.
 
+For the eight growth letters (experience/kill/fishing/travel/treasure/time/tenacity/hero), the per-level parameters (required count per level, multiplier per level, per-level defense growth) are stored in the item's own data components: `/letterset` run with an empty main hand modifies and writes back the config, while holding the matching letter writes directly into that item's data (holding any other item does nothing). The config defaults only serve as initial values for freshly obtained letters (Creative tab / `/give`). After `/letterset` modifies an item, its displayed/computed values recompute immediately, and the item tooltip shows the per-level multiplier (four rates — damage/armor/toughness/resistance — hidden when 0 or empty; the Travel letter's flight part and the Hero letter's high-level part additionally show a secondary set of four rates) and the required count per level (hidden when non-positive), stored in that item's data.
+
 ### 2. Damage Bonus Rules
 
 - A letter in your **inventory, accessory slots, or a Letter Binder** counts as carried — you do not need to hold it.
@@ -118,8 +120,10 @@ All letters provide three defensive attributes while carried:
 ### 12. Potion-Effect Entries (`/lettereffect`)
 
 - Every magic letter can carry any number of potion-effect entries in its own NBT (`letter_potions`, empty by default — no config entries needed); the effects apply to the holder while the letter is carried (inventory / armor / off hand / accessory slots / binder contents).
-- Manage entries with `/lettereffect add|delete|ls` (requires holding the letter in the main hand). Two trigger modes: by world day-time (multiple points per day) or by world total game time (start tick + interval).
-- Timing uses the world clock (same as `/time query daytime` / `/time query gametime`) — there is no per-player timer.
+- Manage entries with `/lettereffect add|delete|ls` (requires holding the letter in the main hand). `add` writes into a given `<slot>` (overwriting it if already present, otherwise creating it); `delete` removes the entry at a `<slot>` (the slot can be reused afterward). Two trigger modes: by world day-time (multiple points per day) or by world total game time (start tick + interval).
+- Timing follows the vanilla `/time query` sources: `gametime` uses the world total game time (`getGameTime()`, monotonic, never rewinds), `daytime` uses the world day time (`getDayTime()`, affected by `/time set`); both are re-read every poll slot — there is no per-player timer.
+- If a trigger falls while the holder is offline or its chunk is unloaded, on login/load the mod back-computes the most recent expected trigger time; if the recorded `seconds` duration has not yet elapsed, it re-applies the effect with the remaining duration (works for both daytime and gametime modes).
+- Each re-apply recalibrates the duration (it first removes the existing effect and re-adds it with the current remaining duration), so even if world time jumps (e.g. `/time set`) the effect duration is corrected to the exact value — it cannot run longer or shorter than it should.
 
 ---
 
@@ -212,11 +216,11 @@ All mod commands require permission level 2/3/4:
 
 | Command | Description |
 | --- | --- |
-| `/lettermulti [true false]` | Toggle multiple letters being active at once |
-| `/lettersame [true false]` | Toggle identical letters each counting |
+| `/lettermulti [true|false]` | Toggle multiple letters being active at once |
+| `/lettersame [true|false]` | Toggle identical letters each counting |
 | `/letterset <type> <param> <value>` | Modify letter growth / multiplier / defensive attributes (growth letters: with an empty main hand the command modifies and writes back the config; holding the matching letter writes into its item data; holding any other item does nothing. custom requires holding the matching letter and writes into its item data; stage letters write to config) |
-| `/lettertype [add delete] <damage_type>` | Add / remove default bonus damage types |
-| `/letterentity [add delete] <entity_type>` | Add / remove magic conversion blacklist entities |
+| `/lettertype add|delete <damage_type>` | Add / remove default bonus damage types |
+| `/letterentity add|delete <entity_type>` | Add / remove magic conversion blacklist entities |
 | `/letterdamage <damage_type>` | Set the damage type of the held conversion letter |
 | `/letterback [player]` | Retrieve a player's bound letter/binder item entities |
 | `/lettercolor [red green blue]` | Query / set the glowing color |
@@ -226,7 +230,7 @@ All mod commands require permission level 2/3/4:
 | `/letterresistance ...` | Query / toggle / set the resistance cap |
 | `/lettervanish ...` | Query / toggle the forced vanishing mechanic |
 | `/letterbinding ...` | Manage binding whitelist and modify bound UUID |
-| `/lettereffect add\|delete\|ls` | Manage potion-effect entries on the held magic letter (stored in the item's own NBT, empty by default — no config; triggers on the world clock) |
+| `/lettereffect add\|delete\|ls` | Manage potion-effect entries on the held magic letter (`add` writes/overwrites a given `<slot>`, `delete` removes by slot; stored in the item's own NBT, empty by default — no config; triggers on the world clock) |
 | `/letterstorage ...` | Capture an entity, swap items, export NBT (`nbt <uuid\|player>` locks a target entity directly by UUID or online player name) |
 
 ---
