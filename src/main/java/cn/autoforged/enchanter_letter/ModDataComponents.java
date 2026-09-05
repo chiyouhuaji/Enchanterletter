@@ -74,9 +74,47 @@ public class ModDataComponents {
         stack.getOrCreateTag().putString(BOUND_PLAYER, uuid.toString());
     }
 
+    /**
+     * 可增长手札（非阶段、非定制）的每级参数（倍率 / 升级所需进度 / 防御成长）存于物品同一 NBT 标签，
+     * 以扁平键值形式写入（无子标签）。配置文件默认值仅作为物品获得时的初始默认；
+     * /letterset 对这类手札直接写物品 NBT（需手持），不写配置文件；
+     * 等级/倍率/防御结算每次从 NBT 读取，命令修改后即时重算，避免不同步。
+     */
+    public static double getGrowthDouble(ItemStack stack, String key, double def) {
+        CompoundTag tag = stack.getTag();
+        return tag != null && tag.contains(key, Tag.TAG_DOUBLE) ? tag.getDouble(key) : def;
+    }
+
+    public static int getGrowthInt(ItemStack stack, String key, int def) {
+        CompoundTag tag = stack.getTag();
+        return tag != null && tag.contains(key, Tag.TAG_INT) ? tag.getInt(key) : def;
+    }
+
+    public static void setGrowthDouble(ItemStack stack, String key, double value) {
+        stack.getOrCreateTag().putDouble(key, value);
+    }
+
+    public static void setGrowthInt(ItemStack stack, String key, int value) {
+        stack.getOrCreateTag().putInt(key, value);
+    }
+
     public static void removeBoundPlayer(ItemStack stack) {
         if (stack.hasTag()) {
             stack.getTag().remove(BOUND_PLAYER);
         }
+    }
+
+    /**
+     * 获取物品 letter 数据 tag（物品 NBT 标签本体），药水词条等也存于此。
+     * 1.20.1 移植：无 DataComponents，直接操作物品 NBT 标签（与 neoforge 的 CUSTOM_DATA 副本对应，
+     * 但这里返回的是活标签，调用方修改即生效）。
+     */
+    public static CompoundTag getLetterData(ItemStack stack) {
+        return stack.getOrCreateTag();
+    }
+
+    /** 写回物品 letter 数据 tag（getLetterData 已返回活标签，此处仅为保持 neoforge 调用模式）。 */
+    public static void setLetterData(ItemStack stack, CompoundTag tag) {
+        stack.setTag(tag);
     }
 }

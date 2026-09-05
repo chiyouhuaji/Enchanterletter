@@ -4,8 +4,6 @@
 
 **Enchanter Letter** is a Minecraft mod supporting **Minecraft 1.21.1 / 1.20.1** with four branches for **NeoForge / Forge / Fabric**. It adds a set of growable, customizable **Enchanter Letters** and **Letter Binders**: simply keep them in your inventory, accessory slots, or a binder to gain damage bonuses and defensive attributes — no need to hold them.
 
-[简体中文](./README.md) | [English](./README.en.md)
-
 - All four branches are feature-synchronized; only the underlying implementations differ.
 - No mandatory mod dependencies. `UsefulMagic`, `Curios`, `Accessories`, `Terra Curio`, etc. are all optional, reflection-based integrations.
 - The mod works on `usefulmagic:magic` damage by default, and can be extended to any registered damage type through configuration and commands.
@@ -45,6 +43,8 @@ Each letter has a level (Lv). Higher levels grant stronger bonuses, and levels a
 | Custom Letter | Always level 0 | Reads item data directly; no progression/config participation |
 
 All values above are configuration defaults and are adjustable, except for the Custom Letter.
+
+For the eight growth letters (experience/kill/fishing/travel/treasure/time/tenacity/hero), the per-level parameters (required count per level, multiplier per level, per-level defense growth) are stored in the item's own data components: `/letterset` run with an empty main hand modifies and writes back the config, while holding the matching letter writes directly into that item's data (holding any other item does nothing). The config defaults only serve as initial values for freshly obtained letters (Creative tab / `/give`). After `/letterset` modifies an item, its displayed/computed values recompute immediately, and the item tooltip shows the per-level multiplier (four rates — damage/armor/toughness/resistance — hidden when 0 or empty; the Travel letter's flight part and the Hero letter's high-level part additionally show a secondary set of four rates) and the required count per level (hidden when non-positive), stored in that item's data.
 
 ### 2. Damage Bonus Rules
 
@@ -114,6 +114,14 @@ All letters provide three defensive attributes while carried:
 - When a mob carries letters in its main hand, off hand, armor, or accessory slots, **all damage it deals** is boosted (players still strictly follow the configured damage types).
 - `/letterstorage` lets you capture an entity, swap items with its main hand/off hand/armor slots, and export its NBT.
 - Management commands such as `/letterback` (retrieve dropped items), `/letterclean` (scheduled cleanup), and `/letterbinding` (ejection whitelist) are also provided.
+
+### 12. Potion-Effect Entries (`/lettereffect`)
+
+- Every magic letter can carry any number of potion-effect entries in its own NBT (`letter_potions`, empty by default — no config entries needed); the effects apply to the holder while the letter is carried (inventory / armor / off hand / accessory slots / binder contents).
+- Manage entries with `/lettereffect add|delete|ls` (requires holding the letter in the main hand). `add` writes into a given `<slot>` (overwriting it if already present, otherwise creating it); `delete` removes the entry at a `<slot>` (the slot can be reused afterward). Two trigger modes: by world day-time (multiple points per day) or by world total game time (start tick + interval).
+- Timing follows the vanilla `/time query` sources: `gametime` uses the world total game time (`getGameTime()`, monotonic, never rewinds), `daytime` uses the world day time (`getDayTime()`, affected by `/time set`); both are re-read every poll slot — there is no per-player timer.
+- If a trigger falls while the holder is offline or its chunk is unloaded, on login/load the mod back-computes the most recent expected trigger time; if the recorded `seconds` duration has not yet elapsed, it re-applies the effect with the remaining duration (works for both daytime and gametime modes).
+- Each re-apply recalibrates the duration (it first removes the existing effect and re-adds it with the current remaining duration), so even if world time jumps (e.g. `/time set`) the effect duration is corrected to the exact value — it cannot run longer or shorter than it should.
 
 ---
 
@@ -196,7 +204,7 @@ Generated after the first launch:
 - `config/enchanter_letter_client.json`: client configuration.
   - HUD default visibility and toggle key (default `N`, GLFW key code 78).
 
-Changing the config files requires restarting the game/server. Changes made through commands take effect immediately and are written back to the config file (both `/letterenchanted` and `/letterclean` support this).
+Changing the config files requires restarting the game/server. Changes made through commands take effect immediately and are written back to the config file (both `/letterenchanted` and `/letterclean` support this; for `/letterset`, `stage_1`~`stage_10` and the eight growth letters run with an empty main hand write back to the config, while growth letters held in the main hand and `custom` letters write directly into the held item's data).
 
 ---
 
@@ -206,11 +214,11 @@ All mod commands require permission level 2/3/4:
 
 | Command | Description |
 | --- | --- |
-| `/lettermulti [true false]` | Toggle multiple letters being active at once |
-| `/lettersame [true false]` | Toggle identical letters each counting |
-| `/letterset <type> <param> <value>` | Modify letter growth / multiplier / defensive attributes |
-| `/lettertype [add delete] <damage_type>` | Add / remove default bonus damage types |
-| `/letterentity [add delete] <entity_type>` | Add / remove magic conversion blacklist entities |
+| `/lettermulti [true|false]` | Toggle multiple letters being active at once |
+| `/lettersame [true|false]` | Toggle identical letters each counting |
+| `/letterset <type> <param> <value>` | Modify letter growth / multiplier / defensive attributes (growth letters: with an empty main hand the command modifies and writes back the config; holding the matching letter writes into its item data; holding any other item does nothing. custom requires holding the matching letter and writes into its item data; stage letters write to config) |
+| `/lettertype add|delete <damage_type>` | Add / remove default bonus damage types |
+| `/letterentity add|delete <entity_type>` | Add / remove magic conversion blacklist entities |
 | `/letterdamage <damage_type>` | Set the damage type of the held conversion letter |
 | `/letterback [player]` | Retrieve a player's bound letter/binder item entities |
 | `/lettercolor [red green blue]` | Query / set the glowing color |
@@ -220,7 +228,8 @@ All mod commands require permission level 2/3/4:
 | `/letterresistance ...` | Query / toggle / set the resistance cap |
 | `/lettervanish ...` | Query / toggle the forced vanishing mechanic |
 | `/letterbinding ...` | Manage binding whitelist and modify bound UUID |
-| `/letterstorage ...` | Capture an entity, swap items, export NBT |
+| `/lettereffect add\|delete\|ls` | Manage potion-effect entries on the held magic letter (`add` writes/overwrites a given `<slot>`, `delete` removes by slot; stored in the item's own NBT, empty by default — no config; triggers on the world clock) |
+| `/letterstorage ...` | Capture an entity, swap items, export NBT (`nbt <uuid\|player>` locks a target entity directly by UUID or online player name) |
 
 ---
 
