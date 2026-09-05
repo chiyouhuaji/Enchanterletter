@@ -20,7 +20,8 @@
     "BundleWeightMixin"
   ],
   "client": [
-    "HandItemUseMixin"
+    "HandItemUseMixin",
+    "MinecraftAttackInterceptMixin"
   ],
   "injectors": {
     "defaultRequire": 1

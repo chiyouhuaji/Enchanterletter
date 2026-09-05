@@ -68,6 +68,10 @@ public class LetterStoragePayloads {
                 UUID id = entityId.get();
                 Entity target = findEntity(context.server(), id);
                 if (target == null) return;
+                // 已在截取同一实体时跳过：避免单次点击由于客户端重复派发 startAttack
+                // （handleKeybinds 的 while(consumeClick()) 循环 + 一次点击多次键击）导致
+                // 同一实体被“截取两次”、提示出现两次。重新截取同一实体本就是幂等操作。
+                if (id.equals(LetterStorageManager.getCapturedId(player))) return;
                 LetterStorageManager.setCaptured(player, id);
                 String name = target.getDisplayName().getString();
                 player.sendSystemMessage(Component.translatable(

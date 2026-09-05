@@ -11,7 +11,6 @@ import cn.autoforged.enchanter_letter.item.LetterStats;
 import cn.autoforged.enchanter_letter.item.MagicLetterItem;
 import cn.autoforged.enchanter_letter.item.TimeMagicLetterItem;
 import cn.autoforged.enchanter_letter.network.LetterStoragePayloads;
-import cn.autoforged.enchanter_letter.storage.LetterStorageClient;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.fabricmc.fabric.api.client.item.v1.ItemTooltipCallback;
 import net.fabricmc.fabric.api.client.keybinding.v1.KeyBindingHelper;
@@ -22,7 +21,6 @@ import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.core.NonNullList;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
-import net.minecraft.world.entity.Entity;
 import net.minecraft.world.item.BundleItem;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
@@ -78,20 +76,9 @@ public class ModClientEvents {
         // /letterstorage 交互模式开关（S2C）
         LetterStoragePayloads.registerClientReceiver();
 
-        // /letterstorage 截取模式：在 tick 最前消费“攻击”键击，拦截原版空手左键，
-        // 把准星指向的实体 id 上报服务端（仅交互模式开启且主手为空时生效）
-        ClientTickEvents.START_CLIENT_TICK.register(client -> {
-            if (!LetterStorageClient.isActive()) return;
-            var player = client.player;
-            if (player == null) return;
-            if (!player.getMainHandItem().isEmpty()) return; // 仅“空手”拦截
-            if (client.options.keyAttack.consumeClick()) {
-                Entity target = client.crosshairPickEntity;
-                if (target != null && target != player) {
-                    LetterStoragePayloads.sendCaptureToServer(target.getUUID());
-                }
-            }
-        });
+        // /letterstorage 截取模式：空手左键攻击拦截由 MinecraftAttackInterceptMixin
+        // 在 startAttack/continueAttack 两个派发入口统一处理（见该 mixin 注释），
+        // 不依赖 START_CLIENT_TICK 的 tick 帧对齐，高帧率下也不会漏拦截。
 
         ClientTickEvents.END_CLIENT_TICK.register(client -> {
             // 饰品栏缓存：带冷却刷新，避免每 tick 反射遍历（HUD 用缓存，0.1 秒内无感）
