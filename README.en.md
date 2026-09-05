@@ -4,6 +4,8 @@
 
 **Enchanter Letter** is a Minecraft mod supporting **Minecraft 1.21.1 / 1.20.1** with four branches for **NeoForge / Forge / Fabric**. It adds a set of growable, customizable **Enchanter Letters** and **Letter Binders**: simply keep them in your inventory, accessory slots, or a binder to gain damage bonuses and defensive attributes — no need to hold them.
 
+[简体中文](./README.md) | [English](./README.en.md)
+
 - All four branches are feature-synchronized; only the underlying implementations differ.
 - No mandatory mod dependencies. `UsefulMagic`, `Curios`, `Accessories`, `Terra Curio`, etc. are all optional, reflection-based integrations.
 - The mod works on `usefulmagic:magic` damage by default, and can be extended to any registered damage type through configuration and commands.
