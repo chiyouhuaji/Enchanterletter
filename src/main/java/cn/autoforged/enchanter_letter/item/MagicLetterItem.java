@@ -25,6 +25,8 @@ public abstract class MagicLetterItem extends Item {
     protected static final DecimalFormat PERCENT_FORMAT = new DecimalFormat("+#0.0%");
     protected static final DecimalFormat LEVEL_FORMAT = new DecimalFormat("#,###");
     protected static final DecimalFormat VALUE_FORMAT = new DecimalFormat("+#0.0#");
+    /** 进度描述用：不带 "+" 前缀的浮点格式（进度描述内不出现 + 号）。 */
+    protected static final DecimalFormat PROGRESS_FORMAT = new DecimalFormat("#,##0.0#");
 
     public MagicLetterItem(Properties properties) {
         super(properties);
@@ -45,6 +47,28 @@ public abstract class MagicLetterItem extends Item {
                 .withStyle(ChatFormatting.GOLD));
         tooltipComponents.add(Component.translatable("tooltip." + UsefulMagicEnchanterLetterMod.MOD_ID + ".magic_damage_bonus", PERCENT_FORMAT.format(multiplier))
                 .withStyle(ChatFormatting.RED));
+        // 可增长手札（非阶段/非定制）：显示物品 NBT 记载的每级倍率（伤害/护甲/韧性/抗性），为 0 或空则隐藏
+        double[] primary = getGrowthRatesPrimary(stack);
+        if (primary != null) {
+            addGrowthRateLine(tooltipComponents, "growth_damage", primary[0], PERCENT_FORMAT);
+            addGrowthRateLine(tooltipComponents, "growth_armor", primary[1], VALUE_FORMAT);
+            addGrowthRateLine(tooltipComponents, "growth_toughness", primary[2], VALUE_FORMAT);
+            addGrowthRateLine(tooltipComponents, "growth_resistance", primary[3], PERCENT_FORMAT);
+            // 次级倍率（旅行=飞行部分、英雄=高等级部分）
+            double[] secondary = getGrowthRatesSecondary(stack);
+            if (secondary != null) {
+                addGrowthRateLine(tooltipComponents, "growth_damage2", secondary[0], PERCENT_FORMAT);
+                addGrowthRateLine(tooltipComponents, "growth_armor2", secondary[1], VALUE_FORMAT);
+                addGrowthRateLine(tooltipComponents, "growth_toughness2", secondary[2], VALUE_FORMAT);
+                addGrowthRateLine(tooltipComponents, "growth_resistance2", secondary[3], PERCENT_FORMAT);
+            }
+            // 升级所需次数（取自物品 NBT 每级参数，非正不显示）
+            double required = getRequiredPerLevelForTooltip(stack);
+            if (required > 0 && Double.isFinite(required)) {
+                tooltipComponents.add(Component.translatable("tooltip." + UsefulMagicEnchanterLetterMod.MOD_ID + ".required_per_level", LEVEL_FORMAT.format(required))
+                        .withStyle(ChatFormatting.DARK_GREEN));
+            }
+        }
         // 防御属性：护甲值 / 护甲韧性（直接数值）、抗性提升（减免比例）
         LetterStats.Entry stats = LetterStats.of(stack, clientLevel);
         if (stats != null) {
@@ -153,6 +177,75 @@ public abstract class MagicLetterItem extends Item {
     }
 
     /**
+     * 可增长手札（非阶段/非定制）的“主倍率组”（tooltip 用）：{伤害倍率, 护甲倍率, 韧性倍率, 抗性倍率}，
+     * 取自物品 NBT 记载的每级参数；非可增长手札返回 null。
+     */
+    protected double[] getGrowthRatesPrimary(ItemStack stack) {
+        if (this instanceof ExperienceMagicLetterItem m) {
+            return new double[]{ m.getGrowthPerLevel(stack), m.getArmorGrowth(stack), m.getToughnessGrowth(stack), m.getResistanceGrowth(stack) };
+        }
+        if (this instanceof KillMagicLetterItem m) {
+            return new double[]{ m.getGrowthPerLevel(stack), m.getArmorGrowth(stack), m.getToughnessGrowth(stack), m.getResistanceGrowth(stack) };
+        }
+        if (this instanceof FishingMagicLetterItem m) {
+            return new double[]{ m.getGrowthPerLevel(stack), m.getArmorGrowth(stack), m.getToughnessGrowth(stack), m.getResistanceGrowth(stack) };
+        }
+        if (this instanceof TravelMagicLetterItem m) {
+            return new double[]{ m.getWalkGrowth(stack), m.getArmorGrowth(stack), m.getToughnessGrowth(stack), m.getResistanceGrowth(stack) };
+        }
+        if (this instanceof TreasureMagicLetterItem m) {
+            return new double[]{ m.getGrowthPerLevel(stack), m.getArmorGrowth(stack), m.getToughnessGrowth(stack), m.getResistanceGrowth(stack) };
+        }
+        if (this instanceof TimeMagicLetterItem m) {
+            return new double[]{ m.getGrowthPerLevel(stack), m.getArmorGrowth(stack), m.getToughnessGrowth(stack), m.getResistanceGrowth(stack) };
+        }
+        if (this instanceof TenacityMagicLetterItem m) {
+            return new double[]{ m.getGrowthPerLevel(stack), m.getArmorGrowth(stack), m.getToughnessGrowth(stack), m.getResistanceGrowth(stack) };
+        }
+        if (this instanceof HeroMagicLetterItem m) {
+            return new double[]{ m.getGrowthLow(stack), m.getArmorGrowth(stack), m.getToughnessGrowth(stack), m.getResistanceGrowth(stack) };
+        }
+        return null;
+    }
+
+    /**
+     * 可增长手札的“次级倍率组”（tooltip 用）：{次级伤害倍率, 次级护甲倍率, 次级韧性倍率, 次级抗性倍率}。
+     * 仅旅行（飞行部分）与英雄（高等级部分）有次级倍率；无次级返回 null。
+     */
+    protected double[] getGrowthRatesSecondary(ItemStack stack) {
+        if (this instanceof TravelMagicLetterItem m) {
+            return new double[]{ m.getFlyGrowth(stack), m.getArmor2Growth(stack), m.getToughness2Growth(stack), m.getResistance2Growth(stack) };
+        }
+        if (this instanceof HeroMagicLetterItem m) {
+            return new double[]{ m.getGrowthHigh(stack), m.getArmor2Growth(stack), m.getToughness2Growth(stack), m.getResistance2Growth(stack) };
+        }
+        return null;
+    }
+
+    /**
+     * 可增长手札的“升级所需次数”（tooltip 用，取自物品 NBT 每级参数）。
+     * 非可增长手札返回 -1（不显示）。
+     */
+    protected double getRequiredPerLevelForTooltip(ItemStack stack) {
+        if (this instanceof ExperienceMagicLetterItem m) return m.getExpPerLevel(stack);
+        if (this instanceof KillMagicLetterItem m) return m.getKillsPerLevel(stack);
+        if (this instanceof FishingMagicLetterItem m) return m.getFishPerLevel(stack);
+        if (this instanceof TravelMagicLetterItem m) return m.getWalkDistancePerLevel(stack);
+        if (this instanceof TreasureMagicLetterItem m) return m.getOpensPerLevel(stack);
+        if (this instanceof TimeMagicLetterItem m) return m.getSecondsPerLevel(stack);
+        if (this instanceof TenacityMagicLetterItem m) return m.getDamagePerLevel(stack);
+        if (this instanceof HeroMagicLetterItem m) return m.getVictoriesPerLevel(stack);
+        return -1;
+    }
+
+    /** 追加一条倍率 tooltip 行；倍率为 0 或非有限（空）时隐藏。 */
+    private static void addGrowthRateLine(List<Component> tooltipComponents, String key, double value, DecimalFormat format) {
+        if (value <= 0 || !Double.isFinite(value)) return;
+        tooltipComponents.add(Component.translatable("tooltip." + UsefulMagicEnchanterLetterMod.MOD_ID + "." + key, format.format(value))
+                .withStyle(ChatFormatting.DARK_GREEN));
+    }
+
+    /**
      * 非阶段手札的行为进度总计数文本（tooltip 显示当前进度）。
      * 各子类按其行为计数显示；返回 null 表示不显示。
      */
@@ -163,7 +256,7 @@ public abstract class MagicLetterItem extends Item {
         }
         if (this instanceof TenacityMagicLetterItem) {
             return Component.translatable("tooltip." + UsefulMagicEnchanterLetterMod.MOD_ID + ".progress_tenacity",
-                    VALUE_FORMAT.format(TenacityMagicLetterItem.getDamageTaken(stack))).getString();
+                    PROGRESS_FORMAT.format(TenacityMagicLetterItem.getDamageTaken(stack))).getString();
         }
         if (this instanceof ExperienceMagicLetterItem) {
             return Component.translatable("tooltip." + UsefulMagicEnchanterLetterMod.MOD_ID + ".progress_experience",
@@ -178,13 +271,20 @@ public abstract class MagicLetterItem extends Item {
                     LEVEL_FORMAT.format(TreasureMagicLetterItem.getOpens(stack))).getString();
         }
         if (this instanceof HeroMagicLetterItem) {
+            // 低级袭击 / 高级袭击：低级阶段（等级 < highLevelStart）所需胜利次数记为低级，超出部分记为高级；两者相加 = 总袭击胜利数
+            int victories = HeroMagicLetterItem.getVictories(stack);
+            int perLevel = Math.max(1, HeroMagicLetterItem.getVictoriesPerLevel(stack));
+            int start = Math.max(1, HeroMagicLetterItem.getHighLevelStart(stack));
+            long lowThreshold = (long) perLevel * (start - 1);
+            long lowPart = Math.min(victories, lowThreshold);
+            long highPart = victories - lowPart;
             return Component.translatable("tooltip." + UsefulMagicEnchanterLetterMod.MOD_ID + ".progress_hero",
-                    LEVEL_FORMAT.format(HeroMagicLetterItem.getVictories(stack))).getString();
+                    LEVEL_FORMAT.format(lowPart), LEVEL_FORMAT.format(highPart)).getString();
         }
         if (this instanceof TravelMagicLetterItem) {
             return Component.translatable("tooltip." + UsefulMagicEnchanterLetterMod.MOD_ID + ".progress_travel",
-                    VALUE_FORMAT.format(TravelMagicLetterItem.getWalkDistance(stack)),
-                    VALUE_FORMAT.format(TravelMagicLetterItem.getFlyDistance(stack))).getString();
+                    PROGRESS_FORMAT.format(TravelMagicLetterItem.getWalkDistance(stack)),
+                    PROGRESS_FORMAT.format(TravelMagicLetterItem.getFlyDistance(stack))).getString();
         }
         if (this instanceof TimeMagicLetterItem) {
             int t = getLevel(stack, level);

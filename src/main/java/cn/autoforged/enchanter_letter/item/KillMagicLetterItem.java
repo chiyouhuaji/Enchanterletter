@@ -17,15 +17,33 @@ public class KillMagicLetterItem extends MagicLetterItem {
         return stack.getOrDefault(ModDataComponents.KILL_COUNT, 0);
     }
 
+    public static double getKillsPerLevel(ItemStack stack) {
+        return ModDataComponents.getGrowthDouble(stack, "kills_per_level", (double) ModConfig.getInstance().killLetter.killsPerLevel);
+    }
+
+    public static double getGrowthPerLevel(ItemStack stack) {
+        return ModDataComponents.getGrowthDouble(stack, "growth_per_level", ModConfig.getInstance().killLetter.growthPerLevel);
+    }
+
+    public static double getArmorGrowth(ItemStack stack) {
+        return ModDataComponents.getGrowthDouble(stack, "armor_growth_per_level", ModConfig.getInstance().killLetter.armorGrowthPerLevel);
+    }
+
+    public static double getToughnessGrowth(ItemStack stack) {
+        return ModDataComponents.getGrowthDouble(stack, "toughness_growth_per_level", ModConfig.getInstance().killLetter.toughnessGrowthPerLevel);
+    }
+
+    public static double getResistanceGrowth(ItemStack stack) {
+        return ModDataComponents.getGrowthDouble(stack, "resistance_growth_per_level", ModConfig.getInstance().killLetter.resistanceGrowthPerLevel);
+    }
+
     @Override
     public int getLevel(ItemStack stack) {
-        int killsPerLevel = ModConfig.getInstance().killLetter.killsPerLevel;
-        return getKills(stack) / killsPerLevel;
+        return (int) (getKills(stack) / getKillsPerLevel(stack));
     }
 
     @Override
     public double getMultiplier(ItemStack stack) {
-        double growthPerLevel = ModConfig.getInstance().killLetter.growthPerLevel;
-        return getLevel(stack) * growthPerLevel;
+        return getLevel(stack) * getGrowthPerLevel(stack);
     }
 }

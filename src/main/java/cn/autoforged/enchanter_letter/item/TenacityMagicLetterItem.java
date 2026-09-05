@@ -17,15 +17,33 @@ public class TenacityMagicLetterItem extends MagicLetterItem {
         return stack.getOrDefault(ModDataComponents.DAMAGE_TAKEN, 0.0);
     }
 
+    public static double getDamagePerLevel(ItemStack stack) {
+        return ModDataComponents.getGrowthDouble(stack, "damage_per_level", ModConfig.getInstance().tenacityLetter.damagePerLevel);
+    }
+
+    public static double getGrowthPerLevel(ItemStack stack) {
+        return ModDataComponents.getGrowthDouble(stack, "growth_per_level", ModConfig.getInstance().tenacityLetter.growthPerLevel);
+    }
+
+    public static double getArmorGrowth(ItemStack stack) {
+        return ModDataComponents.getGrowthDouble(stack, "armor_growth_per_level", ModConfig.getInstance().tenacityLetter.armorGrowthPerLevel);
+    }
+
+    public static double getToughnessGrowth(ItemStack stack) {
+        return ModDataComponents.getGrowthDouble(stack, "toughness_growth_per_level", ModConfig.getInstance().tenacityLetter.toughnessGrowthPerLevel);
+    }
+
+    public static double getResistanceGrowth(ItemStack stack) {
+        return ModDataComponents.getGrowthDouble(stack, "resistance_growth_per_level", ModConfig.getInstance().tenacityLetter.resistanceGrowthPerLevel);
+    }
+
     @Override
     public int getLevel(ItemStack stack) {
-        double damagePerLevel = ModConfig.getInstance().tenacityLetter.damagePerLevel;
-        return (int) (getDamageTaken(stack) / damagePerLevel);
+        return (int) (getDamageTaken(stack) / getDamagePerLevel(stack));
     }
 
     @Override
     public double getMultiplier(ItemStack stack) {
-        double growthPerLevel = ModConfig.getInstance().tenacityLetter.growthPerLevel;
-        return getLevel(stack) * growthPerLevel;
+        return getLevel(stack) * getGrowthPerLevel(stack);
     }
 }

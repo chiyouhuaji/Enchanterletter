@@ -15,8 +15,16 @@ import net.minecraft.commands.Commands;
 import net.minecraft.commands.arguments.EntityArgument;
 import net.minecraft.commands.arguments.ResourceLocationArgument;
 import cn.autoforged.enchanter_letter.item.CustomMagicLetterItem;
+import cn.autoforged.enchanter_letter.item.ExperienceMagicLetterItem;
+import cn.autoforged.enchanter_letter.item.FishingMagicLetterItem;
+import cn.autoforged.enchanter_letter.item.HeroMagicLetterItem;
+import cn.autoforged.enchanter_letter.item.KillMagicLetterItem;
 import cn.autoforged.enchanter_letter.item.LetterBinderItem;
 import cn.autoforged.enchanter_letter.item.MagicLetterItem;
+import cn.autoforged.enchanter_letter.item.TenacityMagicLetterItem;
+import cn.autoforged.enchanter_letter.item.TimeMagicLetterItem;
+import cn.autoforged.enchanter_letter.item.TravelMagicLetterItem;
+import cn.autoforged.enchanter_letter.item.TreasureMagicLetterItem;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
@@ -25,6 +33,7 @@ import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.item.ItemEntity;
 import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.phys.Vec3;
 
@@ -616,6 +625,29 @@ public class LetterCommands {
                     "command.enchanter_letter.letterset.success", type, param, value), true);
             return 1;
         }
+        if (isGrowthType(type)) {
+            // 成长型手札：空手（或非玩家）→ 修改配置文件（旧行为）；手持对应类型手札 → 修改物品 NBT；
+            // 手持其他物品 → 不执行（applyGrowthValue 返回 null）
+            if (!(context.getSource().getEntity() instanceof Player growthPlayer) || growthPlayer.getMainHandItem().isEmpty()) {
+                String result = applyValue(type, param, value);
+                if (result == null) {
+                    context.getSource().sendFailure(Component.translatable("command.enchanter_letter.letterset.invalid", type, param));
+                    return 0;
+                }
+                ModConfig.save();
+                context.getSource().sendSuccess(() -> Component.translatable(
+                        "command.enchanter_letter.letterset.success", type, param, value), true);
+                return 1;
+            }
+            String key = applyGrowthValue(context, type, param, value);
+            if (key == null) {
+                context.getSource().sendFailure(Component.translatable("command.enchanter_letter.letterset.invalid", type, param));
+                return 0;
+            }
+            context.getSource().sendSuccess(() -> Component.translatable(
+                    "command.enchanter_letter.letterset.success", type, param, value), true);
+            return 1;
+        }
         String result = applyValue(type, param, value);
         if (result == null) {
             context.getSource().sendFailure(Component.translatable("command.enchanter_letter.letterset.invalid", type, param));
@@ -625,6 +657,23 @@ public class LetterCommands {
         context.getSource().sendSuccess(() -> Component.translatable(
                 "command.enchanter_letter.letterset.success", type, param, value), true);
         return 1;
+    }
+
+    /** 是否为走逐级参数 NBT 的 8 类成长手札。 */
+    private static boolean isGrowthType(String type) {
+        switch (type.toLowerCase()) {
+            case "experience":
+            case "kill":
+            case "fishing":
+            case "travel":
+            case "treasure":
+            case "time":
+            case "tenacity":
+            case "hero":
+                return true;
+            default:
+                return false;
+        }
     }
 
     /** 定制手札：数值直接写入物品组件，不写入配置文件，也不按计数/等级成长计算。 */
@@ -650,6 +699,110 @@ public class LetterCommands {
         }
     }
 
+
+    /**
+     * 成长手札：逐级参数写入手持物品 NBT（CustomData），不写配置文件。
+     * 返回 null 表示非玩家 / 主手不是对应类型手札 / 参数对该类型无效。
+     */
+    private static String applyGrowthValue(CommandContext<CommandSourceStack> context, String type, String param, double value) {
+        if (!(context.getSource().getEntity() instanceof Player player)) return null;
+        ItemStack stack = player.getMainHandItem();
+        Item item = stack.getItem();
+        switch (type.toLowerCase()) {
+            case "experience":
+                if (!(item instanceof ExperienceMagicLetterItem)) return null;
+                switch (param) {
+                    case "time": ModDataComponents.setGrowthDouble(stack, "exp_per_level", value); return "exp_per_level";
+                    case "damage": ModDataComponents.setGrowthDouble(stack, "growth_per_level", value); return "growth_per_level";
+                    case "armor": ModDataComponents.setGrowthDouble(stack, "armor_growth_per_level", value); return "armor_growth_per_level";
+                    case "toughness": ModDataComponents.setGrowthDouble(stack, "toughness_growth_per_level", value); return "toughness_growth_per_level";
+                    case "resistance": ModDataComponents.setGrowthDouble(stack, "resistance_growth_per_level", value); return "resistance_growth_per_level";
+                    default: return null;
+                }
+            case "kill":
+                if (!(item instanceof KillMagicLetterItem)) return null;
+                switch (param) {
+                    case "time": ModDataComponents.setGrowthDouble(stack, "kills_per_level", value); return "kills_per_level";
+                    case "damage": ModDataComponents.setGrowthDouble(stack, "growth_per_level", value); return "growth_per_level";
+                    case "armor": ModDataComponents.setGrowthDouble(stack, "armor_growth_per_level", value); return "armor_growth_per_level";
+                    case "toughness": ModDataComponents.setGrowthDouble(stack, "toughness_growth_per_level", value); return "toughness_growth_per_level";
+                    case "resistance": ModDataComponents.setGrowthDouble(stack, "resistance_growth_per_level", value); return "resistance_growth_per_level";
+                    default: return null;
+                }
+            case "fishing":
+                if (!(item instanceof FishingMagicLetterItem)) return null;
+                switch (param) {
+                    case "time": ModDataComponents.setGrowthDouble(stack, "fish_per_level", value); return "fish_per_level";
+                    case "damage": ModDataComponents.setGrowthDouble(stack, "growth_per_level", value); return "growth_per_level";
+                    case "armor": ModDataComponents.setGrowthDouble(stack, "armor_growth_per_level", value); return "armor_growth_per_level";
+                    case "toughness": ModDataComponents.setGrowthDouble(stack, "toughness_growth_per_level", value); return "toughness_growth_per_level";
+                    case "resistance": ModDataComponents.setGrowthDouble(stack, "resistance_growth_per_level", value); return "resistance_growth_per_level";
+                    default: return null;
+                }
+            case "travel":
+                if (!(item instanceof TravelMagicLetterItem)) return null;
+                switch (param) {
+                    case "time": ModDataComponents.setGrowthDouble(stack, "walk_distance_per_level", value); return "walk_distance_per_level";
+                    case "time2": ModDataComponents.setGrowthDouble(stack, "fly_distance_per_level", value); return "fly_distance_per_level";
+                    case "damage": ModDataComponents.setGrowthDouble(stack, "walk_growth_per_level", value); return "walk_growth_per_level";
+                    case "damage2": ModDataComponents.setGrowthDouble(stack, "fly_growth_per_level", value); return "fly_growth_per_level";
+                    case "armor": ModDataComponents.setGrowthDouble(stack, "armor_growth_per_level", value); return "armor_growth_per_level";
+                    case "armor2": ModDataComponents.setGrowthDouble(stack, "armor2_growth_per_level", value); return "armor2_growth_per_level";
+                    case "toughness": ModDataComponents.setGrowthDouble(stack, "toughness_growth_per_level", value); return "toughness_growth_per_level";
+                    case "toughness2": ModDataComponents.setGrowthDouble(stack, "toughness2_growth_per_level", value); return "toughness2_growth_per_level";
+                    case "resistance": ModDataComponents.setGrowthDouble(stack, "resistance_growth_per_level", value); return "resistance_growth_per_level";
+                    case "resistance2": ModDataComponents.setGrowthDouble(stack, "resistance2_growth_per_level", value); return "resistance2_growth_per_level";
+                    default: return null;
+                }
+            case "treasure":
+                if (!(item instanceof TreasureMagicLetterItem)) return null;
+                switch (param) {
+                    case "time": ModDataComponents.setGrowthDouble(stack, "opens_per_level", value); return "opens_per_level";
+                    case "damage": ModDataComponents.setGrowthDouble(stack, "growth_per_level", value); return "growth_per_level";
+                    case "armor": ModDataComponents.setGrowthDouble(stack, "armor_growth_per_level", value); return "armor_growth_per_level";
+                    case "toughness": ModDataComponents.setGrowthDouble(stack, "toughness_growth_per_level", value); return "toughness_growth_per_level";
+                    case "resistance": ModDataComponents.setGrowthDouble(stack, "resistance_growth_per_level", value); return "resistance_growth_per_level";
+                    default: return null;
+                }
+            case "time":
+                if (!(item instanceof TimeMagicLetterItem)) return null;
+                switch (param) {
+                    case "time": ModDataComponents.setGrowthDouble(stack, "seconds_per_level", value); return "seconds_per_level";
+                    case "damage": ModDataComponents.setGrowthDouble(stack, "growth_per_level", value); return "growth_per_level";
+                    case "armor": ModDataComponents.setGrowthDouble(stack, "armor_growth_per_level", value); return "armor_growth_per_level";
+                    case "toughness": ModDataComponents.setGrowthDouble(stack, "toughness_growth_per_level", value); return "toughness_growth_per_level";
+                    case "resistance": ModDataComponents.setGrowthDouble(stack, "resistance_growth_per_level", value); return "resistance_growth_per_level";
+                    default: return null;
+                }
+            case "tenacity":
+                if (!(item instanceof TenacityMagicLetterItem)) return null;
+                switch (param) {
+                    case "time": ModDataComponents.setGrowthDouble(stack, "damage_per_level", value); return "damage_per_level";
+                    case "damage": ModDataComponents.setGrowthDouble(stack, "growth_per_level", value); return "growth_per_level";
+                    case "armor": ModDataComponents.setGrowthDouble(stack, "armor_growth_per_level", value); return "armor_growth_per_level";
+                    case "toughness": ModDataComponents.setGrowthDouble(stack, "toughness_growth_per_level", value); return "toughness_growth_per_level";
+                    case "resistance": ModDataComponents.setGrowthDouble(stack, "resistance_growth_per_level", value); return "resistance_growth_per_level";
+                    default: return null;
+                }
+            case "hero":
+                if (!(item instanceof HeroMagicLetterItem)) return null;
+                switch (param) {
+                    case "time": ModDataComponents.setGrowthInt(stack, "victories_per_level", (int) value); return "victories_per_level";
+                    case "time2": ModDataComponents.setGrowthInt(stack, "high_level_start", (int) value); return "high_level_start";
+                    case "damage": ModDataComponents.setGrowthDouble(stack, "growth_low_levels", value); return "growth_low_levels";
+                    case "damage2": ModDataComponents.setGrowthDouble(stack, "growth_high_levels", value); return "growth_high_levels";
+                    case "armor": ModDataComponents.setGrowthDouble(stack, "armor_growth_per_level", value); return "armor_growth_per_level";
+                    case "armor2": ModDataComponents.setGrowthDouble(stack, "armor2_growth_per_level", value); return "armor2_growth_per_level";
+                    case "toughness": ModDataComponents.setGrowthDouble(stack, "toughness_growth_per_level", value); return "toughness_growth_per_level";
+                    case "toughness2": ModDataComponents.setGrowthDouble(stack, "toughness2_growth_per_level", value); return "toughness2_growth_per_level";
+                    case "resistance": ModDataComponents.setGrowthDouble(stack, "resistance_growth_per_level", value); return "resistance_growth_per_level";
+                    case "resistance2": ModDataComponents.setGrowthDouble(stack, "resistance2_growth_per_level", value); return "resistance2_growth_per_level";
+                    default: return null;
+                }
+            default:
+                return null;
+        }
+    }
 
     /** 阶段属性数组写入（不足则先补 0 扩容），返回配置键名。 */
     private static String setStageArrayValue(List<Double> values, int index, double value) {

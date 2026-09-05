@@ -262,8 +262,8 @@ public class ModClientEvents {
     private static double getLetterMultiplier(ItemStack stack, Level level) {
         if (stack.isEmpty()) return 0;
         var item = stack.getItem();
-        if (item instanceof TimeMagicLetterItem) {
-            return TimeMagicLetterItem.getMultiplier(level);
+        if (item instanceof TimeMagicLetterItem time) {
+            return time.getMultiplier(stack, level);
         }
         if (item instanceof MagicLetterItem ml) {
             return ml.getMultiplier(stack);
