@@ -4,6 +4,8 @@
 
 **Enchanter Letter** is a Minecraft mod supporting **Minecraft 1.21.1 / 1.20.1** with four branches for **NeoForge / Forge / Fabric**. It adds a set of growable, customizable **Enchanter Letters** and **Letter Binders**: simply keep them in your inventory, accessory slots, or a binder to gain damage bonuses and defensive attributes — no need to hold them.
 
+[简体中文](./README.md) | [English](./README.en.md)
+
 - All four branches are feature-synchronized; only the underlying implementations differ.
 - No mandatory mod dependencies. `UsefulMagic`, `Curios`, `Accessories`, `Terra Curio`, etc. are all optional, reflection-based integrations.
 - The mod works on `usefulmagic:magic` damage by default, and can be extended to any registered damage type through configuration and commands.
@@ -44,7 +46,7 @@ Each letter has a level (Lv). Higher levels grant stronger bonuses, and levels a
 
 All values above are configuration defaults and are adjustable, except for the Custom Letter.
 
-For the eight growth letters (experience/kill/fishing/travel/treasure/time/tenacity/hero), the per-level parameters (required count per level, multiplier per level, per-level defense growth) are stored in the item's own NBT: `/letterset` run with an empty main hand modifies and writes back the config, while holding the matching letter writes directly into that item's data (holding any other item does nothing). The config defaults only serve as initial values for freshly obtained letters (Creative tab / `/give`). After `/letterset` modifies an item, its displayed/computed values recompute immediately, and the item tooltip shows the per-level multiplier (four rates — damage/armor/toughness/resistance — hidden when 0 or empty; the Travel letter's flight part and the Hero letter's high-level part additionally show a secondary set of four rates) and the required count per level (hidden when non-positive), stored in that item's NBT.
+For the eight growth letters (experience/kill/fishing/travel/treasure/time/tenacity/hero), the per-level parameters (required count per level, multiplier per level, per-level defense growth) are stored in the item's own data components: `/letterset` run with an empty main hand modifies and writes back the config, while holding the matching letter writes directly into that item's data (holding any other item does nothing). The config defaults only serve as initial values for freshly obtained letters (Creative tab / `/give`). After `/letterset` modifies an item, its displayed/computed values recompute immediately, and the item tooltip shows the per-level multiplier (four rates — damage/armor/toughness/resistance — hidden when 0 or empty; the Travel letter's flight part and the Hero letter's high-level part additionally show a secondary set of four rates) and the required count per level (hidden when non-positive), stored in that item's data.
 
 ### 2. Damage Bonus Rules
 
