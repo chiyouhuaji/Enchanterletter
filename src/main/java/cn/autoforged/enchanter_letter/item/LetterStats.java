@@ -195,31 +195,30 @@ public class LetterStats {
 
         if (item instanceof TimeMagicLetterItem time) {
             int lv = time.getLevel(stack, level);
-            ModConfig.TimeLetterConfig cfg = config.timeLetter;
-            return new Entry(stack, lv, TimeMagicLetterItem.getMultiplier(level),
-                    lv * cfg.armorGrowthPerLevel, lv * cfg.toughnessGrowthPerLevel, lv * cfg.resistanceGrowthPerLevel,
+            return new Entry(stack, lv, TimeMagicLetterItem.getMultiplier(level, stack),
+                    lv * TimeMagicLetterItem.getArmorGrowth(stack),
+                    lv * TimeMagicLetterItem.getToughnessGrowth(stack),
+                    lv * TimeMagicLetterItem.getResistanceGrowth(stack),
                     enchanted, type);
         }
-        if (item instanceof TravelMagicLetterItem) {
-            ModConfig.TravelLetterConfig cfg = config.travelLetter;
-            double walkLevels = Math.floor(TravelMagicLetterItem.getWalkDistance(stack) / cfg.walkDistancePerLevel);
-            double flyLevels = Math.floor(TravelMagicLetterItem.getFlyDistance(stack) / cfg.flyDistancePerLevel);
+        if (item instanceof TravelMagicLetterItem travel) {
+            double walkLevels = Math.floor(TravelMagicLetterItem.getWalkDistance(stack) / TravelMagicLetterItem.getWalkDistancePerLevel(stack));
+            double flyLevels = Math.floor(TravelMagicLetterItem.getFlyDistance(stack) / TravelMagicLetterItem.getFlyDistancePerLevel(stack));
             return new Entry(stack, (int) (walkLevels + flyLevels),
-                    walkLevels * cfg.walkGrowthPerLevel + flyLevels * cfg.flyGrowthPerLevel,
-                    walkLevels * cfg.armorGrowthPerLevel + flyLevels * cfg.armor2GrowthPerLevel,
-                    walkLevels * cfg.toughnessGrowthPerLevel + flyLevels * cfg.toughness2GrowthPerLevel,
-                    walkLevels * cfg.resistanceGrowthPerLevel + flyLevels * cfg.resistance2GrowthPerLevel,
+                    walkLevels * TravelMagicLetterItem.getWalkGrowth(stack) + flyLevels * TravelMagicLetterItem.getFlyGrowth(stack),
+                    walkLevels * TravelMagicLetterItem.getArmorGrowth(stack) + flyLevels * TravelMagicLetterItem.getArmor2Growth(stack),
+                    walkLevels * TravelMagicLetterItem.getToughnessGrowth(stack) + flyLevels * TravelMagicLetterItem.getToughness2Growth(stack),
+                    walkLevels * TravelMagicLetterItem.getResistanceGrowth(stack) + flyLevels * TravelMagicLetterItem.getResistance2Growth(stack),
                     enchanted, type);
         }
         if (item instanceof HeroMagicLetterItem hero) {
             int lv = hero.getLevel(stack);
-            ModConfig.HeroLetterConfig cfg = config.heroLetter;
-            boolean high = lv >= cfg.highLevelStart;
+            boolean high = lv >= HeroMagicLetterItem.getHighLevelStart(stack);
             return new Entry(stack, lv,
-                    lv * (high ? cfg.growthHighLevels : cfg.growthLowLevels),
-                    lv * (high ? cfg.armor2GrowthPerLevel : cfg.armorGrowthPerLevel),
-                    lv * (high ? cfg.toughness2GrowthPerLevel : cfg.toughnessGrowthPerLevel),
-                    lv * (high ? cfg.resistance2GrowthPerLevel : cfg.resistanceGrowthPerLevel),
+                    lv * (high ? HeroMagicLetterItem.getGrowthHigh(stack) : HeroMagicLetterItem.getGrowthLow(stack)),
+                    lv * (high ? HeroMagicLetterItem.getArmor2Growth(stack) : HeroMagicLetterItem.getArmorGrowth(stack)),
+                    lv * (high ? HeroMagicLetterItem.getToughness2Growth(stack) : HeroMagicLetterItem.getToughnessGrowth(stack)),
+                    lv * (high ? HeroMagicLetterItem.getResistance2Growth(stack) : HeroMagicLetterItem.getResistanceGrowth(stack)),
                     enchanted, type);
         }
         if (item instanceof StageMagicLetterItem stage) {
@@ -232,11 +231,11 @@ public class LetterStats {
                     stageValue(cfg.resistanceValues, lv, 0.0),
                     enchanted, type);
         }
-        if (item instanceof ExperienceMagicLetterItem ml) return simple(stack, level, ml, config.experienceLetter.armorGrowthPerLevel, config.experienceLetter.toughnessGrowthPerLevel, config.experienceLetter.resistanceGrowthPerLevel, enchanted, type);
-        if (item instanceof KillMagicLetterItem ml) return simple(stack, level, ml, config.killLetter.armorGrowthPerLevel, config.killLetter.toughnessGrowthPerLevel, config.killLetter.resistanceGrowthPerLevel, enchanted, type);
-        if (item instanceof FishingMagicLetterItem ml) return simple(stack, level, ml, config.fishingLetter.armorGrowthPerLevel, config.fishingLetter.toughnessGrowthPerLevel, config.fishingLetter.resistanceGrowthPerLevel, enchanted, type);
-        if (item instanceof TreasureMagicLetterItem ml) return simple(stack, level, ml, config.treasureLetter.armorGrowthPerLevel, config.treasureLetter.toughnessGrowthPerLevel, config.treasureLetter.resistanceGrowthPerLevel, enchanted, type);
-        if (item instanceof TenacityMagicLetterItem ml) return simple(stack, level, ml, config.tenacityLetter.armorGrowthPerLevel, config.tenacityLetter.toughnessGrowthPerLevel, config.tenacityLetter.resistanceGrowthPerLevel, enchanted, type);
+        if (item instanceof ExperienceMagicLetterItem ml) return simple(stack, level, ml, ExperienceMagicLetterItem.getArmorGrowth(stack), ExperienceMagicLetterItem.getToughnessGrowth(stack), ExperienceMagicLetterItem.getResistanceGrowth(stack), enchanted, type);
+        if (item instanceof KillMagicLetterItem ml) return simple(stack, level, ml, KillMagicLetterItem.getArmorGrowth(stack), KillMagicLetterItem.getToughnessGrowth(stack), KillMagicLetterItem.getResistanceGrowth(stack), enchanted, type);
+        if (item instanceof FishingMagicLetterItem ml) return simple(stack, level, ml, FishingMagicLetterItem.getArmorGrowth(stack), FishingMagicLetterItem.getToughnessGrowth(stack), FishingMagicLetterItem.getResistanceGrowth(stack), enchanted, type);
+        if (item instanceof TreasureMagicLetterItem ml) return simple(stack, level, ml, TreasureMagicLetterItem.getArmorGrowth(stack), TreasureMagicLetterItem.getToughnessGrowth(stack), TreasureMagicLetterItem.getResistanceGrowth(stack), enchanted, type);
+        if (item instanceof TenacityMagicLetterItem ml) return simple(stack, level, ml, TenacityMagicLetterItem.getArmorGrowth(stack), TenacityMagicLetterItem.getToughnessGrowth(stack), TenacityMagicLetterItem.getResistanceGrowth(stack), enchanted, type);
         if (item instanceof CustomMagicLetterItem custom) {
             return new Entry(stack, 0, custom.getMultiplier(stack),
                     CustomMagicLetterItem.getCustomArmor(stack),

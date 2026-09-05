@@ -4,6 +4,7 @@ import cn.autoforged.enchanter_letter.ModDataComponents;
 import cn.autoforged.enchanter_letter.UsefulMagicEnchanterLetterMod;
 import cn.autoforged.enchanter_letter.command.LetterCommands;
 import cn.autoforged.enchanter_letter.command.LetterDamageCommand;
+import cn.autoforged.enchanter_letter.command.LetterEffectCommand;
 import cn.autoforged.enchanter_letter.command.LetterStorageCommand;
 import cn.autoforged.enchanter_letter.config.ModConfig;
 import cn.autoforged.enchanter_letter.enchantment.ModEnchantments;
@@ -14,6 +15,7 @@ import cn.autoforged.enchanter_letter.item.FishingMagicLetterItem;
 import cn.autoforged.enchanter_letter.item.HeroMagicLetterItem;
 import cn.autoforged.enchanter_letter.item.KillMagicLetterItem;
 import cn.autoforged.enchanter_letter.item.LetterBinderItem;
+import cn.autoforged.enchanter_letter.item.LetterPotions;
 import cn.autoforged.enchanter_letter.item.LetterStats;
 import cn.autoforged.enchanter_letter.item.MagicLetterItem;
 import cn.autoforged.enchanter_letter.item.ModItems;
@@ -80,10 +82,13 @@ public class ModCommonEvents {
     private static final int ACCESSORY_COMPAT_INTERVAL = 100;
     /** 手札护甲/韧性属性常驻同步间隔（tick，每 0.5 秒）。 */
     private static final int ARMOR_SYNC_INTERVAL = 10;
+    /** 手札药水效果轮询间隔（tick，每 1 秒；用世界时间判定循环，无需每 tick）。 */
+    private static final int POTION_POLL_INTERVAL = 20;
 
     private static int bindCheckCooldown = BIND_CHECK_INTERVAL;
     private static int accessoryCompatCooldown = ACCESSORY_COMPAT_INTERVAL;
     private static int armorSyncCooldown = ARMOR_SYNC_INTERVAL;
+    private static int potionPollCooldown = POTION_POLL_INTERVAL;
 
     private static final ThreadLocal<UUID> CONVERSION_IN_PROGRESS = new ThreadLocal<>();
 
@@ -182,6 +187,20 @@ public class ModCommonEvents {
                 for (LivingEntity mob : level.getEntities(net.minecraft.world.level.entity.EntityTypeTest.forClass(LivingEntity.class),
                         ent -> !(ent instanceof Player))) {
                     LetterStats.syncArmorModifiers(mob);
+                }
+            }
+        }
+
+        // 手札药水效果：对在线玩家（及携带手札的生物）按词条循环模式施加（世界时间判定）
+        if (--potionPollCooldown <= 0) {
+            potionPollCooldown = POTION_POLL_INTERVAL;
+            for (var player : server.getPlayerList().getPlayers()) {
+                LetterPotions.tick(player, player.serverLevel());
+            }
+            for (ServerLevel level : server.getAllLevels()) {
+                for (LivingEntity mob : level.getEntities(net.minecraft.world.level.entity.EntityTypeTest.forClass(LivingEntity.class),
+                        ent -> !(ent instanceof Player))) {
+                    LetterPotions.tick(mob, level);
                 }
             }
         }
@@ -362,6 +381,7 @@ public class ModCommonEvents {
         LetterDamageCommand.register(event.getDispatcher());
         LetterCommands.register(event.getDispatcher());
         LetterStorageCommand.register(event.getDispatcher());
+        LetterEffectCommand.register(event.getDispatcher());
     }
 
     public static boolean isConversionInProgress(LivingEntity entity) {
@@ -731,7 +751,7 @@ public class ModCommonEvents {
         var item = stack.getItem();
         if (item instanceof TimeMagicLetterItem) {
             // 时间手札直接按服务器世界开启时间计算
-            return TimeMagicLetterItem.getMultiplier(level);
+            return TimeMagicLetterItem.getMultiplier(level, stack);
         }
         if (item instanceof MagicLetterItem ml) {
             return ml.getMultiplier(stack);

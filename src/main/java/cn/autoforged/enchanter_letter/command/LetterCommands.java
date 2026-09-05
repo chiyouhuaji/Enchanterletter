@@ -15,8 +15,16 @@ import net.minecraft.commands.Commands;
 import net.minecraft.commands.arguments.EntityArgument;
 import net.minecraft.commands.arguments.ResourceLocationArgument;
 import cn.autoforged.enchanter_letter.item.CustomMagicLetterItem;
+import cn.autoforged.enchanter_letter.item.ExperienceMagicLetterItem;
+import cn.autoforged.enchanter_letter.item.FishingMagicLetterItem;
+import cn.autoforged.enchanter_letter.item.HeroMagicLetterItem;
+import cn.autoforged.enchanter_letter.item.KillMagicLetterItem;
 import cn.autoforged.enchanter_letter.item.LetterBinderItem;
 import cn.autoforged.enchanter_letter.item.MagicLetterItem;
+import cn.autoforged.enchanter_letter.item.TenacityMagicLetterItem;
+import cn.autoforged.enchanter_letter.item.TimeMagicLetterItem;
+import cn.autoforged.enchanter_letter.item.TravelMagicLetterItem;
+import cn.autoforged.enchanter_letter.item.TreasureMagicLetterItem;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
@@ -32,7 +40,9 @@ import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 
 /**
@@ -58,6 +68,63 @@ public class LetterCommands {
             "time", "time2", "damage", "damage2",
             "armor", "armor2", "toughness", "toughness2", "resistance", "resistance2"
     };
+
+    /** 成长型手札类型（其 /letterset 数值直接写入物品 NBT，不修改配置文件）。 */
+    private static final Set<String> GROWTH_TYPES = Set.of(
+            "experience", "kill", "fishing", "travel", "treasure", "time", "tenacity", "hero");
+
+    /** 成长型手札 类型:参数 -> 物品 NBT 键（CUSTOM_DATA 内）。 */
+    private static final Map<String, String> GROWTH_NBT_KEYS = Map.ofEntries(
+            Map.entry("experience:time", "exp_per_level"),
+            Map.entry("experience:damage", "growth_per_level"),
+            Map.entry("experience:armor", "armor_growth_per_level"),
+            Map.entry("experience:toughness", "toughness_growth_per_level"),
+            Map.entry("experience:resistance", "resistance_growth_per_level"),
+            Map.entry("kill:time", "kills_per_level"),
+            Map.entry("kill:damage", "growth_per_level"),
+            Map.entry("kill:armor", "armor_growth_per_level"),
+            Map.entry("kill:toughness", "toughness_growth_per_level"),
+            Map.entry("kill:resistance", "resistance_growth_per_level"),
+            Map.entry("fishing:time", "fish_per_level"),
+            Map.entry("fishing:damage", "growth_per_level"),
+            Map.entry("fishing:armor", "armor_growth_per_level"),
+            Map.entry("fishing:toughness", "toughness_growth_per_level"),
+            Map.entry("fishing:resistance", "resistance_growth_per_level"),
+            Map.entry("treasure:time", "opens_per_level"),
+            Map.entry("treasure:damage", "growth_per_level"),
+            Map.entry("treasure:armor", "armor_growth_per_level"),
+            Map.entry("treasure:toughness", "toughness_growth_per_level"),
+            Map.entry("treasure:resistance", "resistance_growth_per_level"),
+            Map.entry("tenacity:time", "damage_per_level"),
+            Map.entry("tenacity:damage", "growth_per_level"),
+            Map.entry("tenacity:armor", "armor_growth_per_level"),
+            Map.entry("tenacity:toughness", "toughness_growth_per_level"),
+            Map.entry("tenacity:resistance", "resistance_growth_per_level"),
+            Map.entry("time:time", "seconds_per_level"),
+            Map.entry("time:damage", "growth_per_level"),
+            Map.entry("time:armor", "armor_growth_per_level"),
+            Map.entry("time:toughness", "toughness_growth_per_level"),
+            Map.entry("time:resistance", "resistance_growth_per_level"),
+            Map.entry("travel:time", "walk_distance_per_level"),
+            Map.entry("travel:time2", "fly_distance_per_level"),
+            Map.entry("travel:damage", "walk_growth_per_level"),
+            Map.entry("travel:damage2", "fly_growth_per_level"),
+            Map.entry("travel:armor", "armor_growth_per_level"),
+            Map.entry("travel:armor2", "armor2_growth_per_level"),
+            Map.entry("travel:toughness", "toughness_growth_per_level"),
+            Map.entry("travel:toughness2", "toughness2_growth_per_level"),
+            Map.entry("travel:resistance", "resistance_growth_per_level"),
+            Map.entry("travel:resistance2", "resistance2_growth_per_level"),
+            Map.entry("hero:time", "victories_per_level"),
+            Map.entry("hero:time2", "high_level_start"),
+            Map.entry("hero:damage", "growth_low_levels"),
+            Map.entry("hero:damage2", "growth_high_levels"),
+            Map.entry("hero:armor", "armor_growth_per_level"),
+            Map.entry("hero:armor2", "armor2_growth_per_level"),
+            Map.entry("hero:toughness", "toughness_growth_per_level"),
+            Map.entry("hero:toughness2", "toughness2_growth_per_level"),
+            Map.entry("hero:resistance", "resistance_growth_per_level"),
+            Map.entry("hero:resistance2", "resistance2_growth_per_level"));
 
     private static final SuggestionProvider<CommandSourceStack> TYPE_SUGGESTIONS =
             (context, builder) -> {
@@ -616,6 +683,29 @@ public class LetterCommands {
                     "command.enchanter_letter.letterset.success", type, param, value), true);
             return 1;
         }
+        if (GROWTH_TYPES.contains(type.toLowerCase(Locale.ROOT))) {
+            // 成长型手札：空手（或非玩家）→ 修改配置文件（旧行为）；手持对应类型手札 → 修改物品 NBT；
+            // 手持其他物品 → 不执行（applyGrowthValue 返回 null）
+            if (!(context.getSource().getEntity() instanceof Player growthPlayer) || growthPlayer.getMainHandItem().isEmpty()) {
+                String result = applyValue(type, param, value);
+                if (result == null) {
+                    context.getSource().sendFailure(Component.translatable("command.enchanter_letter.letterset.invalid", type, param));
+                    return 0;
+                }
+                ModConfig.save();
+                context.getSource().sendSuccess(() -> Component.translatable(
+                        "command.enchanter_letter.letterset.success", type, param, value), true);
+                return 1;
+            }
+            String key = applyGrowthValue(context, type, param, value);
+            if (key == null) {
+                context.getSource().sendFailure(Component.translatable("command.enchanter_letter.letterset.invalid", type, param));
+                return 0;
+            }
+            context.getSource().sendSuccess(() -> Component.translatable(
+                    "command.enchanter_letter.letterset.success", type, param, value), true);
+            return 1;
+        }
         String result = applyValue(type, param, value);
         if (result == null) {
             context.getSource().sendFailure(Component.translatable("command.enchanter_letter.letterset.invalid", type, param));
@@ -648,6 +738,39 @@ public class LetterCommands {
             default:
                 return null;
         }
+    }
+
+    /**
+     * 成长型手札：把 /letterset 的数值直接写入主手持物品的 NBT（不修改配置文件）。
+     * 需要玩家执行；主手持物品须为对应类型的成长手札。
+     * 返回写入的 NBT 键（或类型名）作为成功标记，失败返回 null。
+     */
+    private static String applyGrowthValue(CommandContext<CommandSourceStack> context, String type, String param, double value) {
+        if (!(context.getSource().getEntity() instanceof Player player)) return null;
+        ItemStack stack = player.getMainHandItem();
+        if (stack.isEmpty()) return null;
+        String t = type.toLowerCase(Locale.ROOT);
+        boolean match;
+        switch (t) {
+            case "experience": match = stack.getItem() instanceof ExperienceMagicLetterItem; break;
+            case "kill": match = stack.getItem() instanceof KillMagicLetterItem; break;
+            case "fishing": match = stack.getItem() instanceof FishingMagicLetterItem; break;
+            case "travel": match = stack.getItem() instanceof TravelMagicLetterItem; break;
+            case "treasure": match = stack.getItem() instanceof TreasureMagicLetterItem; break;
+            case "time": match = stack.getItem() instanceof TimeMagicLetterItem; break;
+            case "tenacity": match = stack.getItem() instanceof TenacityMagicLetterItem; break;
+            case "hero": match = stack.getItem() instanceof HeroMagicLetterItem; break;
+            default: match = false;
+        }
+        if (!match) return null;
+        String key = GROWTH_NBT_KEYS.get(t + ":" + param.toLowerCase(Locale.ROOT));
+        if (key == null) return null;
+        if ("high_level_start".equals(key) || "victories_per_level".equals(key)) {
+            ModDataComponents.setGrowthInt(stack, key, (int) value);
+        } else {
+            ModDataComponents.setGrowthDouble(stack, key, value);
+        }
+        return key;
     }
 
 

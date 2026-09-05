@@ -3,8 +3,13 @@ package cn.autoforged.enchanter_letter;
 import com.mojang.serialization.Codec;
 import net.minecraft.core.UUIDUtil;
 import net.minecraft.core.component.DataComponentType;
+import net.minecraft.core.component.DataComponents;
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.nbt.Tag;
 import net.minecraft.network.codec.ByteBufCodecs;
 import net.minecraft.util.ExtraCodecs;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.component.CustomData;
 import net.neoforged.neoforge.registries.DeferredHolder;
 import net.neoforged.neoforge.registries.DeferredRegister;
 
@@ -74,4 +79,43 @@ public class ModDataComponents {
     public static final DeferredHolder<DataComponentType<?>, DataComponentType<Double>> CUSTOM_RESISTANCE =
             DATA_COMPONENT_TYPES.registerComponentType("custom_resistance",
                     builder -> builder.persistent(Codec.DOUBLE).networkSynchronized(ByteBufCodecs.DOUBLE));
+
+    /**
+     * 可增长手札（非阶段、非定制）的每级参数（倍率 / 升级所需次数 / 防御成长）存于物品即内建 CUSTOM_DATA 组件，
+     * 以键值形式写入同一个 CompoundTag。配置文件默认值仅作为物品获得时的初始默认；
+     * /letterset 对这类手札直接写物品 NBT（需手持），不写配置文件；
+     * 等级/倍率/防御结算每次从 NBT 读取，命令修改后即时重算，避免不同步。
+     */
+    private static CompoundTag getGrowthTag(ItemStack stack) {
+        CustomData data = stack.get(DataComponents.CUSTOM_DATA);
+        return data == null ? new CompoundTag() : data.copyTag();
+    }
+
+    public static double getGrowthDouble(ItemStack stack, String key, double def) {
+        CompoundTag tag = getGrowthTag(stack);
+        return tag.contains(key, Tag.TAG_DOUBLE) ? tag.getDouble(key) : def;
+    }
+
+    public static int getGrowthInt(ItemStack stack, String key, int def) {
+        CompoundTag tag = getGrowthTag(stack);
+        return tag.contains(key, Tag.TAG_INT) ? tag.getInt(key) : def;
+    }
+
+    public static void setGrowthDouble(ItemStack stack, String key, double value) {
+        CustomData.update(DataComponents.CUSTOM_DATA, stack, tag -> tag.putDouble(key, value));
+    }
+
+    public static void setGrowthInt(ItemStack stack, String key, int value) {
+        CustomData.update(DataComponents.CUSTOM_DATA, stack, tag -> tag.putInt(key, value));
+    }
+
+    /** 获取物品 letter 数据 tag（CUSTOM_DATA 的副本），药水词条等也存于此。 */
+    public static CompoundTag getLetterData(ItemStack stack) {
+        return getGrowthTag(stack);
+    }
+
+    /** 写回物品 letter 数据 tag。 */
+    public static void setLetterData(ItemStack stack, CompoundTag tag) {
+        CustomData.set(DataComponents.CUSTOM_DATA, stack, tag);
+    }
 }

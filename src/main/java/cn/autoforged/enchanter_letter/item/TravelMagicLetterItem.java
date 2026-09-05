@@ -22,19 +22,68 @@ public class TravelMagicLetterItem extends MagicLetterItem {
         return stack.getOrDefault(ModDataComponents.FLY_DISTANCE.get(), 0.0);
     }
 
+    // ===== 每级参数：优先读取物品 NBT，缺省回退配置文件默认（仅影响获得时的初始值） =====
+    public static double getWalkDistancePerLevel(ItemStack stack) {
+        return ModDataComponents.getGrowthDouble(stack, "walk_distance_per_level",
+                ModConfig.getInstance().travelLetter.walkDistancePerLevel);
+    }
+
+    public static double getFlyDistancePerLevel(ItemStack stack) {
+        return ModDataComponents.getGrowthDouble(stack, "fly_distance_per_level",
+                ModConfig.getInstance().travelLetter.flyDistancePerLevel);
+    }
+
+    public static double getWalkGrowth(ItemStack stack) {
+        return ModDataComponents.getGrowthDouble(stack, "walk_growth_per_level",
+                ModConfig.getInstance().travelLetter.walkGrowthPerLevel);
+    }
+
+    public static double getFlyGrowth(ItemStack stack) {
+        return ModDataComponents.getGrowthDouble(stack, "fly_growth_per_level",
+                ModConfig.getInstance().travelLetter.flyGrowthPerLevel);
+    }
+
+    public static double getArmorGrowth(ItemStack stack) {
+        return ModDataComponents.getGrowthDouble(stack, "armor_growth_per_level",
+                ModConfig.getInstance().travelLetter.armorGrowthPerLevel);
+    }
+
+    public static double getArmor2Growth(ItemStack stack) {
+        return ModDataComponents.getGrowthDouble(stack, "armor2_growth_per_level",
+                ModConfig.getInstance().travelLetter.armor2GrowthPerLevel);
+    }
+
+    public static double getToughnessGrowth(ItemStack stack) {
+        return ModDataComponents.getGrowthDouble(stack, "toughness_growth_per_level",
+                ModConfig.getInstance().travelLetter.toughnessGrowthPerLevel);
+    }
+
+    public static double getToughness2Growth(ItemStack stack) {
+        return ModDataComponents.getGrowthDouble(stack, "toughness2_growth_per_level",
+                ModConfig.getInstance().travelLetter.toughness2GrowthPerLevel);
+    }
+
+    public static double getResistanceGrowth(ItemStack stack) {
+        return ModDataComponents.getGrowthDouble(stack, "resistance_growth_per_level",
+                ModConfig.getInstance().travelLetter.resistanceGrowthPerLevel);
+    }
+
+    public static double getResistance2Growth(ItemStack stack) {
+        return ModDataComponents.getGrowthDouble(stack, "resistance2_growth_per_level",
+                ModConfig.getInstance().travelLetter.resistance2GrowthPerLevel);
+    }
+
     @Override
     public int getLevel(ItemStack stack) {
-        ModConfig.TravelLetterConfig cfg = ModConfig.getInstance().travelLetter;
-        int walkLevel = (int) (getWalkDistance(stack) / cfg.walkDistancePerLevel);
-        int flyLevel = (int) (getFlyDistance(stack) / cfg.flyDistancePerLevel);
+        int walkLevel = (int) (getWalkDistance(stack) / getWalkDistancePerLevel(stack));
+        int flyLevel = (int) (getFlyDistance(stack) / getFlyDistancePerLevel(stack));
         return walkLevel + flyLevel;
     }
 
     @Override
     public double getMultiplier(ItemStack stack) {
-        ModConfig.TravelLetterConfig cfg = ModConfig.getInstance().travelLetter;
-        double walkLevels = Math.floor(getWalkDistance(stack) / cfg.walkDistancePerLevel);
-        double flyLevels = Math.floor(getFlyDistance(stack) / cfg.flyDistancePerLevel);
-        return walkLevels * cfg.walkGrowthPerLevel + flyLevels * cfg.flyGrowthPerLevel;
+        double walkLevels = Math.floor(getWalkDistance(stack) / getWalkDistancePerLevel(stack));
+        double flyLevels = Math.floor(getFlyDistance(stack) / getFlyDistancePerLevel(stack));
+        return walkLevels * getWalkGrowth(stack) + flyLevels * getFlyGrowth(stack);
     }
 }

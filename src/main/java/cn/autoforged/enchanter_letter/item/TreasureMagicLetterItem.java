@@ -17,15 +17,39 @@ public class TreasureMagicLetterItem extends MagicLetterItem {
         return stack.getOrDefault(ModDataComponents.TREASURE_OPENS.get(), 0);
     }
 
+    // ===== 每级参数：优先读取物品 NBT，缺省回退配置文件默认（仅影响获得时的初始值） =====
+    public static double getOpensPerLevel(ItemStack stack) {
+        return ModDataComponents.getGrowthDouble(stack, "opens_per_level",
+                ModConfig.getInstance().treasureLetter.opensPerLevel);
+    }
+
+    public static double getGrowthPerLevel(ItemStack stack) {
+        return ModDataComponents.getGrowthDouble(stack, "growth_per_level",
+                ModConfig.getInstance().treasureLetter.growthPerLevel);
+    }
+
+    public static double getArmorGrowth(ItemStack stack) {
+        return ModDataComponents.getGrowthDouble(stack, "armor_growth_per_level",
+                ModConfig.getInstance().treasureLetter.armorGrowthPerLevel);
+    }
+
+    public static double getToughnessGrowth(ItemStack stack) {
+        return ModDataComponents.getGrowthDouble(stack, "toughness_growth_per_level",
+                ModConfig.getInstance().treasureLetter.toughnessGrowthPerLevel);
+    }
+
+    public static double getResistanceGrowth(ItemStack stack) {
+        return ModDataComponents.getGrowthDouble(stack, "resistance_growth_per_level",
+                ModConfig.getInstance().treasureLetter.resistanceGrowthPerLevel);
+    }
+
     @Override
     public int getLevel(ItemStack stack) {
-        double opensPerLevel = ModConfig.getInstance().treasureLetter.opensPerLevel;
-        return (int) (getOpens(stack) / opensPerLevel);
+        return (int) (getOpens(stack) / getOpensPerLevel(stack));
     }
 
     @Override
     public double getMultiplier(ItemStack stack) {
-        double growthPerLevel = ModConfig.getInstance().treasureLetter.growthPerLevel;
-        return getLevel(stack) * growthPerLevel;
+        return getLevel(stack) * getGrowthPerLevel(stack);
     }
 }

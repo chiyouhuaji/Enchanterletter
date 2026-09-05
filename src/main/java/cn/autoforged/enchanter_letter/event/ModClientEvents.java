@@ -273,7 +273,7 @@ public class ModClientEvents {
         if (stack.isEmpty()) return 0;
         var item = stack.getItem();
         if (item instanceof TimeMagicLetterItem) {
-            return TimeMagicLetterItem.getMultiplier(level);
+            return TimeMagicLetterItem.getMultiplier(level, stack);
         }
         if (item instanceof MagicLetterItem ml) {
             return ml.getMultiplier(stack);
