@@ -1,0 +1,202 @@
+﻿========================================
+Enchanter Letter (Enchanter Letter)
+Minecraft 1.21.1 / 1.20.1 Mod Introduction
+Supported Loaders: NeoForge / Forge / Fabric (multi‑version sync)
+========================================
+
+I. Mod Overview
+----------------------------------------
+This mod adds a series of “Enchanter Letters” (Enchanter Letter) and “Letter Binders” (Letter Binder).  
+Letters are beneficial items carried in the inventory or curios slots: when the holder deals damage of a specified type, the letter grants a damage bonus based on its level (by default it works on UsefulMagic’s usefulmagic:magic damage, but any damage type can be added via config files or commands). Letters can also be bound to a player and enchanted with “Magic Conversion” to change the damage type, and they are compatible with other curios mods (Curios / Accessories).
+
+Letters are non‑stackable (one per slot) and can be placed in a Letter Binder for unified management.
+
+II. Game Mechanics
+----------------------------------------
+
+【1. Letter Types and Growth Methods】  
+Each letter has a “Level (Lv)”; higher levels give higher damage bonuses. Levels increase by performing the corresponding actions:
+
+- Experience Letter (experience): gain 1 000 experience points to level up; each level gives +10% damage.  
+- Kill Letter (kill): kill 50 mobs to level up; each level gives +10%.  
+- Fishing Letter (fishing): catch 100 fish to level up; each level gives +10%.  
+- Travel Letter (travel): walk 5 000 blocks / fly 20 000 blocks to level up; each level gives +10%.  
+- Treasure Letter (treasure): open 20 natural chests to level up; each level gives +10%.  
+- Time Letter (time): based on world time (every 3 600 seconds = 1 hour) to level up; each level gives +10%; unrelated to player playtime.  
+- Tenacity Letter (tenacity): receive 10 000 damage to level up; each level gives +10%.  
+- Hero Letter (hero): win 1 raid to level up; low levels give +10% per level, from level 4 onward +20% per level; the progress description is split into “Low‑tier raids / High‑tier raids” (sum = total raid victories; low‑tier = victories before reaching the high‑tier threshold, high‑tier = victories after).  
+- Stage Letters (stage_1 ~ stage_10): fixed‑multiplier letters, ranging from 100%, 200%, 300% … up to 1 000%; multipliers can be changed in the config.  
+- Custom Letter (custom): level is always 0 and does not grow; damage multiplier, armor value, armor toughness, and resistance boost all default to 0 and are read directly from the item’s NBT/component; not written to config files.
+
+(The numbers above are the default values in the config file and are fully adjustable, except for custom letters. For the eight growth‑type letters, the defaults only serve as initial values when a new letter is created (creative inventory or /give). The actual values for each letter are stored in the item’s own NBT; see Section 3 for details.)
+
+【2. Damage Bonus Application Rules】  
+Placing a letter in the inventory (or curios slot / binder) counts as “carried” – no need to hold it.  
+Bonus applies to damage types listed in the config option `default_bonus_damage_types` (default `usefulmagic:magic`); any registered damage type can be added.  
+Effective multiplier = Letter Level × Bonus per Level (the item tooltip and HUD show the current actual multiplier).  
+Unenchanted letters apply to the default damage type; letters enchanted with “Magic Conversion” calculate damage using the converted type.
+
+【3. Stacking Rules (`stacking_rules`)】  
+`allow_multiple_letters` (default **false**):  
+- **false** – regardless of how many letters are carried, only the one with the highest multiplier takes effect.  
+- **true** – all letters’ multipliers are summed.  
+
+`allow_same_letters` (default **false**):  
+If two letters are identical in every respect except conversion state (same item, same multiplier, same damage type, same enchantment state), **false** means only one works, **true** means each works.
+
+【4. Binding System】  
+While holding a letter (or an empty Letter Binder), crouch and hold right‑click for about 2 seconds to bind/unbind: after binding the item tooltip shows “Bound to: <player name>”.  
+A bound letter works normally for the bound player; if another player picks up a bound letter, it will not work and will be automatically “ejected” as a dropped item (checked every second in inventory, curios slots, and binder contents).
+
+【5. Dropped Item Protection】  
+All letters and binders that become drops are protected:  
+- Immune to explosions, cactus, and all other damage.  
+- No gravity, speed is constantly zero, staying still (not pushed by water).  
+- Cannot be sucked by hoppers or hopper mines.
+
+【6. Letter Binder】  
+Works like the vanilla bundle (right‑click to store/retrieve, inventory interaction, hover to view contents).  
+Letters are non‑stackable; each occupies one slot. The vanilla binder holds up to 64 letters.  
+Hovering shows correct count/capacity (the four‑branch BundleWeight mixin fixes each letter’s weight to 1 slot/1 /64 slots, guaranteeing 64‑letter capacity).  
+If empty, crouch + long‑press right‑click to bind/unbind the binder itself.  
+If not empty, crouch + right‑click to dump all contents at once.  
+Letters inside the binder count as “carried” and participate in damage bonuses and ejection checks.
+
+【7. Magic Conversion Enchantment】  
+After enchanting a letter with “Magic Conversion” (`magic_conversion`):  
+- The letter’s bonus is no longer tied to the default damage type; it uses the specified converted type.  
+- Use `/letterdamage <damage type>` to set the conversion damage type.  
+- In creative mode, right‑clicking an enchanted book with this enchantment opens a client GUI to directly input the damage type ID.  
+Conversion is processed by damage‑type groups: letters of the same type have their multipliers merged and applied together after a delay; different conversion types do not interfere with each other.
+
+【8. Curios Slot Compatibility】  
+- NeoForge: Curios API (including slots added by other mods that register with Curios, such as Terra Curio’s `accessory` slot; this mod bypasses tag restrictions to allow letters/binders).  
+- Fabric: Accessories and Curios (Fabric).  
+Both are optional: if the respective mod is not installed, there is no impact. Letters work the same when placed in curios slots and are also subject to binding/ejection checks. Compatibility is implemented via reflection with no hard dependencies.
+
+【9. HUD Display】  
+The top‑left corner of the screen shows a real‑time list of active letters (item name, level, actual multiplier; enchanted conversion letters also show the converted damage type). Grey text indicates letters that are currently inactive (only the highest multiplier is active); white text indicates active letters.  
+Default key **N** toggles the HUD (key can be changed in the client config).
+
+III. Configuration Files
+----------------------------------------
+Generated on first launch in the `config/` directory.
+
+1. `config/enchanter_letter.json` (server/main config)  
+```json
+{
+  "experience_letter":  { "exp_per_level": 1000.0, "growth_per_level": 0.1 },
+  "kill_letter":        { "kills_per_level": 50,   "growth_per_level": 0.1 },
+  "fishing_letter":     { "fish_per_level": 100,   "growth_per_level": 0.1 },
+  "travel_letter": {
+    "walk_distance_per_level": 5000.0,
+    "fly_distance_per_level":  20000.0,
+    "walk_growth_per_level":   0.1,
+    "fly_growth_per_level":    0.1
+  },
+  "treasure_letter":    { "opens_per_level": 20,    "growth_per_level": 0.1 },
+  "time_letter":        { "seconds_per_level": 3600.0, "growth_per_level": 0.1 },
+  "tenacity_letter":    { "damage_per_level": 10000.0, "growth_per_level": 0.1 },
+  "hero_letter": {
+    "victories_per_level": 1,
+    "growth_low_levels": 0.1,
+    "growth_high_levels": 0.2,
+    "high_level_start": 4
+  },
+  "stage_letters": { "multipliers": [1,2,3,4,5,6,7,8,9,10] },
+  "stacking_rules": {
+    "allow_multiple_letters": false,
+    "allow_same_letters": false
+  },
+  "magic_conversion": {
+    "interval_seconds": 0.5,
+    "blacklist_entity_names": ""
+    // comma‑ or semicolon‑separated list, e.g. minecraft:warden
+  },
+  "letter_bonus": {
+    "default_bonus_damage_types": "usefulmagic:magic"
+    // comma‑ or semicolon‑separated list of damage types
+  },
+  "letter_glowing": {
+    "default_red": 0,
+    "default_green": 0,
+    "default_blue": 0
+  },
+  "letter_cleanup": {
+    "enabled": true,
+    "interval_seconds": 600.0,
+    "target_uuids": ["00000000-0000-0000-0000-000000000000"],
+    "clean_all_binding": false,
+    "clean_all_normal": false
+  },
+  "letter_respawn": {
+    "restore_delay_ticks": 20
+  },
+  "letter_enchanted": {
+    "enabled": true,
+    "glowing_chance": 0.1,
+    "magic_binding_chance": 0.08,
+    "magic_conversion_chance": 0.0
+  }
+}
+```
+*Modifying the config requires a game/server restart to take effect. Commands such as `/lettermulti`, `/lettertype`, `/letterentity`, etc., write back to this file immediately. `/letterset` writes back according to the rules described in Section 4.*
+
+2. `config/enchanter_letter_client.json` (client config)  
+```json
+{
+  "hud_visible": true,
+  "hud_toggle_key_code": 78   // 78 = N
+}
+```
+
+IV. Commands (all require permission level ≥ 2)
+----------------------------------------
+`/lettermulti [true|false]` – toggle “multiple letters simultaneously active” (no argument flips current value).  
+`/lettersame [true|false]` – toggle “identical letters each active” (no argument flips).  
+`/letterset <type> <param> <value>` – modify growth parameters for a given letter type. Supported types: `experience|kill|fishing|travel|treasure|time|tenacity|hero|custom|stage_1~stage_10`. Supported params: `time|time2|damage|damage2|armor|armor2|toughness|toughness2|resistance|resistance2`. For the eight growth‑type letters the parameters are stored in the item’s NBT; when executed with an empty main hand the values are written to the config file (legacy behavior), otherwise they are written directly to the held letter’s NBT and take effect instantly. Example:  
+- `/letterset time damage 0.05` – set time‑letter damage bonus per level to 5%.  
+- `/letterset stage_4 damage 2.5` – set stage 4 multiplier to 250%.  
+- `/letterset custom damage 1.5` – set custom letter damage multiplier to 150%.  
+
+`/lettertype add|delete <damage type>` – add or remove a damage type from `default_bonus_damage_types`. Tab‑completion shows all registered types (for add) or currently configured types (for delete).  
+
+`/letterentity add|delete <entity type>` – add or remove an entity type from `magic_conversion.blacklist_entity_names` (blacklisted entities are not converted).  
+
+`/letterdamage <damage type>` – set the conversion damage type of the held “Magic Conversion” enchanted letter.  
+
+`/letterback [player]` – return all dropped letters/binders bound to the command executor (or the specified online player) to that player’s location.  
+
+`/lettercolor <red> <green> <blue>` – set the “glow” color of the held letter/binder (RGB 0‑255). When multiple glowing items are carried, the displayed color is the average.  
+
+`/letterenchanted` – view or toggle the logic that adds the three enchantments to treasure tables, and set their individual probabilities.  
+
+`/letterclean` – view or modify the automatic cleanup settings (on/off, interval, whitelist). Sub‑commands allow adding/removing UUIDs, enabling “clean all bound” or “clean all unbound”, and performing immediate cleanup.  
+
+`/letterdelay` – view or set the respawn‑return delay (in ticks, default 20).  
+
+`/letterstorage nbt [<uuid|player>]` – without a target, output the full NBT of the currently targeted entity; with a target, resolve the UUID or online player name and output that entity’s full NBT.  
+
+`/lettereffect add <slot> <effect> <seconds> <amplifier> <hideParticles> <loopMode> <looptime> [<looptime2> …]` – manage potion‑effect entries stored in the main‑hand letter’s NBT. `delete` removes an entry by slot, `ls` lists all entries.  
+
+*All commands except `/letterset` modify the config and write back immediately. `/letterset` with an empty hand still writes to the config; when a matching letter is held it writes to that item’s NBT. Custom letters only write to NBT and never to the config. Stage letters still write to the config.*
+
+V. Compatibility and Dependencies
+----------------------------------------
+Four builds (NeoForge 1.21.1 / Fabric 1.21.1 / Forge 1.20.1 / Fabric 1.20.1) have **no mandatory mod dependencies** and can run standalone:  
+- NeoForge version: depends only on NeoForge and Minecraft.  
+- Forge version: depends only on Forge and Minecraft.  
+- Fabric version: depends only on Fabric Loader, Minecraft, and fabric‑api.  
+
+In the NeoForge 1.21.1 metadata `usefulmagic` is declared optional (only a load‑order hint, not required).  
+
+Optional integrations: UsefulMagic (default damage source), Curios / Accessories (curios slots), Terra Curio (accessory slots, auto‑compatible), MesdagPortLib (auto‑compatible 1.20.1 Forge damage pipeline). All optional integrations are implemented via reflection with **no compile‑time third‑party references**.  
+
+If UsefulMagic is not installed, `usefulmagic:magic` does not exist; other damage types can be configured in `default_bonus_damage_types`.
+
+VI. Defensive Attributes (Armor / Armor Toughness / Resistance Boost)
+----------------------------------------
+All letters (including stage letters) also provide three defensive attributes that work as long as they are carried (in inventory, curios slots, or binder). These grow alongside the existing damage‑bonus logic:
+
+- **Armor** – additive value (not a multiplier) applied as a vanilla attribute modifier to the holder’s armor attribute. No vanilla cap is enforced; players may install mods to lift the cap. Default per‑level gain: non‑stage letters +0.1 armor; stage letters have individually configurable arrays (default 2 armor per level for stage 1, 4 for stage 2, … up to 20 for stage 10, decoupled from the stage number/level).
+
