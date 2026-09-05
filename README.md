@@ -115,6 +115,12 @@
 - `/letterstorage` 可截取实体并与其主手/副手/盔甲槽交换物品、导出 NBT。
 - 提供 `/letterback` 找回掉落物、`/letterclean` 定时清理、`/letterbinding` 弹出白名单等管理命令。
 
+### 12. 手札药水效果条目（/lettereffect）
+
+- 每张魔法手札可在自身 NBT 中携带任意条药水效果条目（`letter_potions`，默认空、无需配置文件）；携带期间（背包/盔甲/副手/饰品栏/合订本内容物）持续作用于持有者。
+- 用 `/lettereffect add|delete|ls` 管理条目（需主手持魔法手札）；触发模式二选一：按世界昼夜时间（每天可设多个时间点）或按世界总游戏时间（起始刻 + 间隔刻）。
+- 计时使用世界时钟（等同 `/time query daytime` / `/time query gametime`），无独立逐玩家计时器。
+
 ---
 
 ## 版本与分支
@@ -196,7 +202,7 @@ gradlew.bat build
 - `config/enchanter_letter_client.json`：客户端配置。
   - HUD 默认显示状态与切换按键（默认 `N`，GLFW 键码 78）。
 
-修改配置文件需重启游戏 / 服务端生效；通过命令修改会立即生效并写回配置文件（`/letterenchanted` 与 `/letterclean` 均支持）。
+修改配置文件需重启游戏 / 服务端生效；通过命令修改会立即生效并写回配置文件（`/letterenchanted` 与 `/letterclean` 均支持；`/letterset` 中 `stage_1`~`stage_10` 与空手执行的八种成长型手札写回配置，手持对应手札的成长型手札与 `custom` 手札直接写入执行者手持物品的数据）。
 
 ---
 
@@ -208,7 +214,7 @@ gradlew.bat build
 | --- | --- |
 | `/lettermulti [true false]` | 开关多张手札同时生效 |
 | `/lettersame [true false]` | 开关完全相同手札重复生效 |
-| `/letterset <type> <param> <value>` | 修改手札成长 / 倍率 / 防御属性 |
+| `/letterset <type> <param> <value>` | 修改手札成长 / 倍率 / 防御属性（成长型手札空手时修改并写回配置文件，手持对应手札时写入物品数据，手持其他物品不生效；custom 需手持对应手札写入物品数据；stage 写回配置） |
 | `/lettertype [add delete] <伤害类型>` | 增删默认增益伤害类型 |
 | `/letterentity [add delete] <实体类型>` | 增删魔法转化黑名单实体 |
 | `/letterdamage <伤害类型>` | 设置手持转化手札的伤害类型 |
@@ -220,7 +226,8 @@ gradlew.bat build
 | `/letterresistance ...` | 查询 / 开关 / 设置抗性减免上限 |
 | `/lettervanish ...` | 查询 / 开关强制消失机制 |
 | `/letterbinding ...` | 绑定白名单与修改绑定 UUID |
-| `/letterstorage ...` | 截取实体、交换物品、导出 NBT |
+| `/lettereffect add\|delete\|ls` | 管理主手魔法手札的药水效果条目（条目存于物品自身 NBT、默认空无需配置，按世界时钟触发） |
+| `/letterstorage ...` | 截取实体、交换物品、导出 NBT（`nbt <uuid\|玩家>` 直接按 UUID 或在线玩家名锁定目标实体） |
 
 ---
 
