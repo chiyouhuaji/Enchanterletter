@@ -77,4 +77,38 @@ public class ModDataComponents {
             stack.getTag().remove(BOUND_PLAYER);
         }
     }
+
+    /**
+     * 可增长手札（非阶段、非定制）的每级参数（倍率 / 升级所需次数 / 防御成长）以扁平键存于物品 NBT。
+     * 配置文件默认值仅作为物品缺省时的回退；/letterset 对这类手札直接写物品 NBT（需手持），不写配置；
+     * 等级/倍率/防御结算每次从 NBT 读取，命令修改后即时重算，避免不同步。
+     */
+    public static double getGrowthDouble(ItemStack stack, String key, double def) {
+        CompoundTag tag = stack.getTag();
+        return tag != null && tag.contains(key, Tag.TAG_DOUBLE) ? tag.getDouble(key) : def;
+    }
+
+    public static int getGrowthInt(ItemStack stack, String key, int def) {
+        CompoundTag tag = stack.getTag();
+        return tag != null && tag.contains(key, Tag.TAG_INT) ? tag.getInt(key) : def;
+    }
+
+    public static void setGrowthDouble(ItemStack stack, String key, double value) {
+        stack.getOrCreateTag().putDouble(key, value);
+    }
+
+    public static void setGrowthInt(ItemStack stack, String key, int value) {
+        stack.getOrCreateTag().putInt(key, value);
+    }
+
+    /** 获取物品 letter 数据 tag（物品 NBT 的活引用；无 tag 时返回新空 tag），药水词条等也存于此。 */
+    public static CompoundTag getLetterData(ItemStack stack) {
+        CompoundTag tag = stack.getTag();
+        return tag != null ? tag : new CompoundTag();
+    }
+
+    /** 写回物品 letter 数据 tag。 */
+    public static void setLetterData(ItemStack stack, CompoundTag tag) {
+        stack.setTag(tag);
+    }
 }

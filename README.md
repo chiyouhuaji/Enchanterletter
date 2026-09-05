@@ -4,8 +4,6 @@
 
 《魔法手札》是一个支持 **Minecraft 1.21.1 / 1.20.1** 的模组，同时提供 **NeoForge / Forge / Fabric** 四个分支。模组添加了一系列可成长、可定制的 **魔法手札（Enchanter Letter）** 与 **手札合订本（Letter Binder）**：把它们放进背包、饰品栏或合订本中即可获得伤害增幅与防御属性，无需手持。
 
-[简体中文](./README.md) | [English](./README.en.md)
-
 - 四个分支功能完全同步，仅底层实现不同。
 - 无强制模组依赖，`UsefulMagic`、`Curios`、`Accessories`、`Terra Curio` 等均为可选的反射兼容联动。
 - 默认对 `usefulmagic:magic` 伤害类型生效，也可通过配置与命令扩展支持任意已注册伤害类型。
@@ -45,6 +43,8 @@
 | 定制手札 | 等级恒为 0 | 直接读取物品数据，不参与成长/配置 |
 
 以上均为配置文件默认值，除定制手札外全部可调。
+
+其中八种成长型手札（experience/kill/fishing/travel/treasure/time/tenacity/hero）的每级参数（升级所需次数 / 每级倍率 / 每级防御成长）存储在该物品自身的 NBT 中：`/letterset` 空手时修改并写回配置文件，手持对应手札时直接写入其数据（手持其他物品不生效），配置文件默认值仅作为新建手札（创造物品栏 / `/give`）时的初始值；修改后数值立即重算，物品描述（tooltip）会显示该物品 NBT 中的每级倍率（伤害/护甲/韧性/抗性四项，数值为 0 或空时隐藏；旅行手札飞行部分与英雄手札高等级部分另显示次级四项）与升级所需次数（非正不显示）。
 
 ### 2. 伤害增幅生效规则
 
@@ -114,6 +114,14 @@
 - 生物主手/副手/装备/饰品槽携带手札时，其 **所有伤害** 都会获得增益（玩家仍严格匹配配置伤害类型）。
 - `/letterstorage` 可截取实体并与其主手/副手/盔甲槽交换物品、导出 NBT。
 - 提供 `/letterback` 找回掉落物、`/letterclean` 定时清理、`/letterbinding` 弹出白名单等管理命令。
+
+### 12. 手札药水效果条目（/lettereffect）
+
+- 每张魔法手札可在自身 NBT 中携带任意条药水效果条目（`letter_potions`，默认空、无需配置文件）；携带期间（背包/盔甲/副手/饰品栏/合订本内容物）持续作用于持有者。
+- 用 `/lettereffect add|delete|ls` 管理条目（需主手持魔法手札）；`add` 指定槽位 `<slot>` 写入/覆盖（若该槽位已有效果则覆盖其内容，否则新建），`delete` 按槽位号删除（删除后槽位可复用）；触发模式二选一：按世界昼夜时间（每天可设多个时间点）或按世界总游戏时间（起始刻 + 间隔刻）。
+- 计时来源与游戏原版 `/time query` 一致：`gametime` 模式用世界总游戏刻（`getGameTime()`，单调不回拨），`daytime` 模式用游戏日时刻（`getDayTime()`，受 `/time set` 影响）；每次轮询重新读取这两个时间并触发，无独立逐玩家计时器。
+- 若触发时刻落在玩家离线或生物区块未加载的时段内，重新上线/被加载后会按世界时间倒推最近一次本应触发的时刻，只要尚未超出 NBT 记录的持续秒数，就按“剩余时长”补发对应效果（daytime 与 gametime 均兼容）。
+- 每次补发都会重新校准持续时间（先移除原效果、再按当前剩余时长重设），因此即使世界时间跳变（如 `/time set`）效果时长也会被校正到准确值，不会“生效过长/过短”。
 
 ---
 
@@ -196,7 +204,7 @@ gradlew.bat build
 - `config/enchanter_letter_client.json`：客户端配置。
   - HUD 默认显示状态与切换按键（默认 `N`，GLFW 键码 78）。
 
-修改配置文件需重启游戏 / 服务端生效；通过命令修改会立即生效并写回配置文件（`/letterenchanted` 与 `/letterclean` 均支持）。
+修改配置文件需重启游戏 / 服务端生效；通过命令修改会立即生效并写回配置文件（`/letterenchanted` 与 `/letterclean` 均支持；`/letterset` 中 `stage_1`~`stage_10` 与空手执行的八种成长型手札写回配置，手持对应手札的成长型手札与 `custom` 手札直接写入执行者手持物品的数据）。
 
 ---
 
@@ -206,11 +214,11 @@ gradlew.bat build
 
 | 命令 | 作用 |
 | --- | --- |
-| `/lettermulti [true false]` | 开关多张手札同时生效 |
-| `/lettersame [true false]` | 开关完全相同手札重复生效 |
-| `/letterset <type> <param> <value>` | 修改手札成长 / 倍率 / 防御属性 |
-| `/lettertype [add delete] <伤害类型>` | 增删默认增益伤害类型 |
-| `/letterentity [add delete] <实体类型>` | 增删魔法转化黑名单实体 |
+| `/lettermulti [true|false]` | 开关多张手札同时生效 |
+| `/lettersame [true|false]` | 开关完全相同手札重复生效 |
+| `/letterset <type> <param> <value>` | 修改手札成长 / 倍率 / 防御属性（成长型手札空手时修改并写回配置文件，手持对应手札时写入物品数据，手持其他物品不生效；custom 需手持对应手札写入物品数据；stage 写回配置） |
+| `/lettertype add|delete <伤害类型>` | 增删默认增益伤害类型 |
+| `/letterentity add|delete <实体类型>` | 增删魔法转化黑名单实体 |
 | `/letterdamage <伤害类型>` | 设置手持转化手札的伤害类型 |
 | `/letterback [玩家]` | 召回绑定的手札/合订本掉落物 |
 | `/lettercolor [红 绿 蓝]` | 查询 / 设置光灵发光颜色 |
@@ -220,7 +228,8 @@ gradlew.bat build
 | `/letterresistance ...` | 查询 / 开关 / 设置抗性减免上限 |
 | `/lettervanish ...` | 查询 / 开关强制消失机制 |
 | `/letterbinding ...` | 绑定白名单与修改绑定 UUID |
-| `/letterstorage ...` | 截取实体、交换物品、导出 NBT |
+| `/lettereffect add\|delete\|ls` | 管理主手魔法手札的药水效果条目（`add` 指定槽位 `<slot>` 写入/覆盖、`delete` 按槽位号删除，条目存于物品自身 NBT、默认空无需配置，按世界时钟触发） |
+| `/letterstorage ...` | 截取实体、交换物品、导出 NBT（`nbt <uuid\|玩家>` 直接按 UUID 或在线玩家名锁定目标实体） |
 
 ---
 

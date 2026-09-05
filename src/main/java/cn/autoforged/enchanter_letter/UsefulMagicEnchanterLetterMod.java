@@ -2,6 +2,7 @@ package cn.autoforged.enchanter_letter;
 
 import cn.autoforged.enchanter_letter.command.LetterCommands;
 import cn.autoforged.enchanter_letter.command.LetterDamageCommand;
+import cn.autoforged.enchanter_letter.command.LetterEffectCommand;
 import cn.autoforged.enchanter_letter.command.LetterStorageCommand;
 import cn.autoforged.enchanter_letter.config.ModConfig;
 import cn.autoforged.enchanter_letter.enchantment.ModEnchantments;
@@ -35,6 +36,7 @@ public class UsefulMagicEnchanterLetterMod implements ModInitializer {
             LetterDamageCommand.register(dispatcher);
             LetterCommands.register(dispatcher);
             LetterStorageCommand.register(dispatcher);
+            LetterEffectCommand.register(dispatcher);
         });
         ServerLifecycleEvents.SERVER_STARTED.register(server -> {
             CuriosIntegration.registerOurItems(ModItems.ALL_LETTERS);
