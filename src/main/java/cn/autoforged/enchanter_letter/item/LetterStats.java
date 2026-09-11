@@ -2,6 +2,8 @@ package cn.autoforged.enchanter_letter.item;
 
 import cn.autoforged.enchanter_letter.ModDataComponents;
 import cn.autoforged.enchanter_letter.config.ModConfig;
+import cn.autoforged.enchanter_letter.effect.ModMagicActivation;
+import cn.autoforged.enchanter_letter.effect.ModMagicObstruction;
 import cn.autoforged.enchanter_letter.enchantment.ModEnchantments;
 import cn.autoforged.enchanter_letter.integration.CuriosIntegration;
 import net.minecraft.core.Holder;
@@ -16,6 +18,7 @@ import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.component.BundleContents;
+import cn.autoforged.enchanter_letter.item.TemporaryLetterBinderItem;
 import net.minecraft.world.level.Level;
 
 import java.util.ArrayList;
@@ -134,6 +137,8 @@ public class LetterStats {
      * 有效护甲值：allow_multiple_letters 关闭时取所有手札中最大的护甲值，开启时全部相加。
      */
     public static double effectiveArmor(LivingEntity player, Level level) {
+        // 魔法阻碍二级及以上：手札护甲值失效
+        if (ModMagicObstruction.blocksArmor(player)) return 0;
         List<Entry> entries = collectEntries(player, level);
         if (entries.isEmpty()) return 0;
         if (ModConfig.getInstance().stackingRules.allowMultipleLetters) {
@@ -150,6 +155,8 @@ public class LetterStats {
      * 有效护甲韧性：allow_multiple_letters 关闭时取所有手札中最大的韧性值，开启时全部相加。
      */
     public static double effectiveToughness(LivingEntity player, Level level) {
+        // 魔法阻碍二级及以上：手札护甲韧性失效
+        if (ModMagicObstruction.blocksArmor(player)) return 0;
         List<Entry> entries = collectEntries(player, level);
         if (entries.isEmpty()) return 0;
         if (ModConfig.getInstance().stackingRules.allowMultipleLetters) {
@@ -166,6 +173,8 @@ public class LetterStats {
      * 有效抗性减免比例：allow_multiple_letters 关闭时取所有手札中最大的减免，开启时全部相加。
      */
     public static double effectiveResistance(LivingEntity player, Level level) {
+        // 魔法阻碍三级：抗性提升失效
+        if (ModMagicObstruction.blocksAll(player)) return 0;
         List<Entry> entries = collectEntries(player, level);
         if (entries.isEmpty()) return 0;
         if (ModConfig.getInstance().stackingRules.allowMultipleLetters) {
@@ -183,6 +192,8 @@ public class LetterStats {
      * 返回 {护甲, 韧性}。
      */
     public static double[] armorToughnessBonus(LivingEntity player, Level level) {
+        // 魔法阻碍二级及以上：同时禁用护甲/护甲韧性
+        if (ModMagicObstruction.blocksArmor(player)) return new double[]{0, 0};
         return new double[]{effectiveArmor(player, level), effectiveToughness(player, level)};
     }
 
@@ -279,6 +290,11 @@ public class LetterStats {
         if (stack.isEmpty()) return;
         consumer.accept(stack);
         if (stack.getItem() instanceof LetterBinderItem) {
+            BundleContents contents = stack.getOrDefault(DataComponents.BUNDLE_CONTENTS, BundleContents.EMPTY);
+            for (ItemStack inner : contents.itemsCopy()) {
+                if (!inner.isEmpty()) consumer.accept(inner);
+            }
+        } else if (stack.getItem() instanceof TemporaryLetterBinderItem && ModMagicActivation.isActive(entity)) {
             BundleContents contents = stack.getOrDefault(DataComponents.BUNDLE_CONTENTS, BundleContents.EMPTY);
             for (ItemStack inner : contents.itemsCopy()) {
                 if (!inner.isEmpty()) consumer.accept(inner);

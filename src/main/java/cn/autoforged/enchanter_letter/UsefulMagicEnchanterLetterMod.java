@@ -1,6 +1,7 @@
 package cn.autoforged.enchanter_letter;
 
 import cn.autoforged.enchanter_letter.config.ModConfig;
+import cn.autoforged.enchanter_letter.effect.ModEffects;
 import cn.autoforged.enchanter_letter.integration.CuriosIntegration;
 import cn.autoforged.enchanter_letter.item.ModItems;
 import cn.autoforged.enchanter_letter.network.ConversionDamageTypePayload;
@@ -21,6 +22,7 @@ public class UsefulMagicEnchanterLetterMod {
         ModConfig.init();
         ModItems.ITEMS.register(modEventBus);
         ModItems.CREATIVE_TABS.register(modEventBus);
+        ModEffects.register(modEventBus);
         ModDataComponents.DATA_COMPONENT_TYPES.register(modEventBus);
         ConversionDamageTypePayload.register(modEventBus);
         LetterStoragePayloads.register(modEventBus);

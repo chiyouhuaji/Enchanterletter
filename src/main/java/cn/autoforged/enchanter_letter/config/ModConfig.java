@@ -387,6 +387,17 @@ public class ModConfig {
     public static class LetterVanishConfig {
         @SerializedName("enabled")
         public boolean enabled = false;
+
+        /**
+         * 强制消失白名单：列表中的物品（资源名，如 enchanter_letter:temporary_letter_binder）
+         * 无视 /lettervanish 开关，每次死亡/复活检索时一律强制消失。
+         * 默认包含临时手札合订本；addVanishing API 调用时会把其他指定物品注册进此白名单。
+         */
+        @SerializedName("force_vanish_whitelist")
+        public List<String> forceVanishWhitelist = new ArrayList<>();
+        {
+            forceVanishWhitelist.add("enchanter_letter:temporary_letter_binder");
+        }
     }
 
     /**

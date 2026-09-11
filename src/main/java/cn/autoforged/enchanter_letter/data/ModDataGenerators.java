@@ -63,6 +63,7 @@ public class ModDataGenerators {
                     .end();
             withExistingParent("letter_binder_full", "item/generated")
                     .texture("layer0", modLoc("item/letter_binder_full"));
+            basicItem(ModItems.TEMPORARY_LETTER_BINDER.get());
             basicItem(ModItems.STAGE_1_MAGIC_LETTER.get());
             basicItem(ModItems.STAGE_2_MAGIC_LETTER.get());
             basicItem(ModItems.STAGE_3_MAGIC_LETTER.get());
@@ -94,9 +95,11 @@ public class ModDataGenerators {
                     ResourceKey<Item> key = BuiltInRegistries.ITEM.getResourceKey(supplier.get()).orElseThrow();
                     tag(tag).add(key);
                 }
-                // 手札合订本同样允许放入任意 Curios 槽位
+                // 手札合订本/临时手札合订本同样允许放入任意 Curios 槽位
                 ResourceKey<Item> binderKey = BuiltInRegistries.ITEM.getResourceKey(ModItems.LETTER_BINDER.get()).orElseThrow();
                 tag(tag).add(binderKey);
+                ResourceKey<Item> tempBinderKey = BuiltInRegistries.ITEM.getResourceKey(ModItems.TEMPORARY_LETTER_BINDER.get()).orElseThrow();
+                tag(tag).add(tempBinderKey);
             }
         }
     }

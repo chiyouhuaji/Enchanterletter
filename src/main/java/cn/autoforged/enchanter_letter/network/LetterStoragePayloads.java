@@ -3,9 +3,14 @@ package cn.autoforged.enchanter_letter.network;
 import cn.autoforged.enchanter_letter.UsefulMagicEnchanterLetterMod;
 import cn.autoforged.enchanter_letter.storage.LetterStorageClient;
 import cn.autoforged.enchanter_letter.storage.LetterStorageManager;
+import net.minecraft.ChatFormatting;
 import net.minecraft.core.UUIDUtil;
+import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.network.FriendlyByteBuf;
+import net.minecraft.network.chat.ClickEvent;
 import net.minecraft.network.chat.Component;
+import net.minecraft.network.chat.HoverEvent;
+import net.minecraft.network.chat.MutableComponent;
 import net.minecraft.network.codec.ByteBufCodecs;
 import net.minecraft.network.codec.StreamCodec;
 import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
@@ -75,11 +80,17 @@ public class LetterStoragePayloads {
             if (target == null) return;
             LetterStorageManager.setCaptured(player, payload.entityId());
             String name = target.getDisplayName().getString();
-            // 1.21 翻译组件参数只允许 Number/Boolean/String/Component：
-            // UUID 对象直接作参数会导致网络编码抛 "This value needs to be parsed as component"，
-            // 必须转为字符串（或组件）再传入。
-            player.sendSystemMessage(Component.translatable(
-                    "command.enchanter_letter.letterstorage.captured", name, payload.entityId().toString()));
+            String uuidText = payload.entityId().toString();
+            String entityIdText = BuiltInRegistries.ENTITY_TYPE.getKey(target.getType()).toString();
+            // 生物名 / UUID / 实体ID 均可点击复制。
+            MutableComponent msg = Component.translatable(
+                    "command.enchanter_letter.letterstorage.captured_header");
+            msg.append(clickableCopy(name, "command.enchanter_letter.letterstorage.copy_name_hint"))
+                    .append("  ")
+                    .append(clickableCopy(uuidText, "command.enchanter_letter.letterstorage.copy_uuid_hint"))
+                    .append("  ")
+                    .append(clickableCopy(entityIdText, "command.enchanter_letter.letterstorage.copy_entity_id_hint"));
+            player.sendSystemMessage(msg);
         });
     }
 
@@ -94,6 +105,14 @@ public class LetterStoragePayloads {
             if (e != null) return e;
         }
         return null;
+    }
+
+    private static MutableComponent clickableCopy(String text, String hoverKey) {
+        return Component.literal(text).withStyle(style -> style
+                .withColor(ChatFormatting.AQUA)
+                .withHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT,
+                        Component.translatable(hoverKey)))
+                .withClickEvent(new ClickEvent(ClickEvent.Action.COPY_TO_CLIPBOARD, text)));
     }
 
     /** 客户端发送截取包。 */

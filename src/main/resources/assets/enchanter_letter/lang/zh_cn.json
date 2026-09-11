@@ -68,6 +68,16 @@
   "item.enchanter_letter.hero_magic_letter": "英雄手札",
   "item.enchanter_letter.custom_magic_letter": "定制手札",
   "item.enchanter_letter.letter_binder": "手札合订本",
+  "item.enchanter_letter.temporary_letter_binder": "临时手札合订本",
+
+  "effect.enchanter_letter.magic_activation": "魔法激活",
+
+  "command.enchanter_letter.letterclone.require_binder": "请在主手持有一本手札合订本",
+  "command.enchanter_letter.letterclone.invalid_seconds": "秒数必须大于 0",
+  "command.enchanter_letter.letterclone.inventory_full": "背包已满，无法获得临时手札合订本",
+  "command.enchanter_letter.letterclone.success": "已获得持续 %s 秒的临时手札合订本",
+  "command.enchanter_letter.letterclone.copy_header": "临时手札合订本克隆命令（点击复制）:",
+  "command.enchanter_letter.letterclone.copy_hint": "点击复制该 /give 命令",
 
   "command.enchanter_letter.lettermulti.success": "多手札同时生效: %s",
   "command.enchanter_letter.lettersame.success": "相同手札(除转化外)同时生效: %s",
@@ -147,6 +157,11 @@
   "command.enchanter_letter.letterstorage.nbt_header": "[%s 的完整NBT] 点击复制:",
   "command.enchanter_letter.letterstorage.nbt_copy_hint": "点击复制该完整的NBT数据",
   "command.enchanter_letter.letterstorage.target_not_found": "不存在该玩家/实体（必须存在且已加载）: %s",
+  "command.enchanter_letter.letterstorage.captured_header": "已截取实体: ",
+  "command.enchanter_letter.letterstorage.copy_name_hint": "点击复制生物名",
+  "command.enchanter_letter.letterstorage.copy_uuid_hint": "点击复制UUID",
+  "command.enchanter_letter.letterstorage.copy_entity_id_hint": "点击复制实体ID",
+  "effect.enchanter_letter.magic_obstruction": "魔法阻碍",
   "command.enchanter_letter.lettereffect.require_letter": "请在主手持有一张魔法手札",
   "command.enchanter_letter.lettereffect.added": "已添加效果 %s（%s 秒，等级 %s）到槽位 #%s",
   "command.enchanter_letter.lettereffect.deleted": "已删除槽位 #%s",

@@ -3,6 +3,7 @@ package cn.autoforged.enchanter_letter.integration;
 import cn.autoforged.enchanter_letter.item.LetterBinderItem;
 import cn.autoforged.enchanter_letter.item.MagicLetterItem;
 import cn.autoforged.enchanter_letter.item.ModItems;
+import cn.autoforged.enchanter_letter.item.TemporaryLetterBinderItem;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.LivingEntity;
@@ -102,7 +103,8 @@ public class CuriosIntegration {
     }
 
     public static boolean isOurAccessoryItem(ItemStack stack) {
-        return stack.getItem() instanceof MagicLetterItem || stack.getItem() instanceof LetterBinderItem;
+        return stack.getItem() instanceof MagicLetterItem || stack.getItem() instanceof LetterBinderItem
+                || stack.getItem() instanceof TemporaryLetterBinderItem;
     }
 
     /**
@@ -157,8 +159,9 @@ public class CuriosIntegration {
                                     if (cn.autoforged.enchanter_letter.enchantment.ModEnchantments.hasEffectiveMagicBinding(stack)) {
                                         return dropRule("ALWAYS_KEEP");
                                     }
-                                    if (cn.autoforged.enchanter_letter.config.ModConfig.getInstance().letterVanish.enabled
-                                            && cn.autoforged.enchanter_letter.enchantment.ModEnchantments.hasVanishing(stack)) {
+                                    if ((cn.autoforged.enchanter_letter.config.ModConfig.getInstance().letterVanish.enabled
+                                            && cn.autoforged.enchanter_letter.enchantment.ModEnchantments.hasVanishing(stack))
+                                            || cn.autoforged.enchanter_letter.enchantment.ModEnchantments.isModAppliedVanishing(stack)) {
                                         return dropRule("DESTROY");
                                     }
                                 }
@@ -179,8 +182,9 @@ public class CuriosIntegration {
             for (var supplier : suppliers) {
                 registerMethod.invoke(null, supplier.get(), proxy);
             }
-            // 手札合订本也注册为 Curio
+            // 手札合订本/临时手札合订本也注册为 Curio
             registerMethod.invoke(null, ModItems.LETTER_BINDER.get(), proxy);
+            registerMethod.invoke(null, ModItems.TEMPORARY_LETTER_BINDER.get(), proxy);
         } catch (Exception ignored) {
         }
     }

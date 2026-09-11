@@ -2,7 +2,10 @@ package cn.autoforged.enchanter_letter.item;
 
 import cn.autoforged.enchanter_letter.ModDataComponents;
 import cn.autoforged.enchanter_letter.UsefulMagicEnchanterLetterMod;
+import cn.autoforged.enchanter_letter.effect.ModMagicActivation;
+import cn.autoforged.enchanter_letter.effect.ModMagicObstruction;
 import cn.autoforged.enchanter_letter.integration.CuriosIntegration;
+import cn.autoforged.enchanter_letter.item.TemporaryLetterBinderItem;
 import net.minecraft.core.component.DataComponents;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.nbt.CompoundTag;
@@ -150,6 +153,8 @@ public class LetterPotions {
      */
     public static void tick(LivingEntity holder, ServerLevel level) {
         if (holder == null || level == null || holder.isRemoved() || !holder.isAlive()) return;
+        // 魔法阻碍三级：手札药水附加失效
+        if (ModMagicObstruction.blocksAll(holder)) return;
         List<CompoundTag> entries = new ArrayList<>();
         scanAllSlots(holder, stack -> entries.addAll(getAll(stack)));
         if (entries.isEmpty()) return;
@@ -222,20 +227,25 @@ public class LetterPotions {
     private static void scanAllSlots(LivingEntity entity, java.util.function.Consumer<ItemStack> consumer) {
         if (entity instanceof Player player) {
             var inv = player.getInventory();
-            for (var stack : inv.items) scanStack(stack, consumer);
-            for (var stack : inv.armor) scanStack(stack, consumer);
-            for (var stack : inv.offhand) scanStack(stack, consumer);
+            for (var stack : inv.items) scanStack(entity, stack, consumer);
+            for (var stack : inv.armor) scanStack(entity, stack, consumer);
+            for (var stack : inv.offhand) scanStack(entity, stack, consumer);
         } else {
-            for (var stack : entity.getArmorSlots()) scanStack(stack, consumer);
-            for (var stack : entity.getHandSlots()) scanStack(stack, consumer);
+            for (var stack : entity.getArmorSlots()) scanStack(entity, stack, consumer);
+            for (var stack : entity.getHandSlots()) scanStack(entity, stack, consumer);
         }
-        for (var stack : CuriosIntegration.getCuriosStacks(entity)) scanStack(stack, consumer);
+        for (var stack : CuriosIntegration.getCuriosStacks(entity)) scanStack(entity, stack, consumer);
     }
 
-    private static void scanStack(ItemStack stack, java.util.function.Consumer<ItemStack> consumer) {
+    private static void scanStack(LivingEntity entity, ItemStack stack, java.util.function.Consumer<ItemStack> consumer) {
         if (stack.isEmpty()) return;
         consumer.accept(stack);
         if (stack.getItem() instanceof LetterBinderItem) {
+            BundleContents contents = stack.getOrDefault(DataComponents.BUNDLE_CONTENTS, BundleContents.EMPTY);
+            for (ItemStack inner : contents.itemsCopy()) {
+                if (!inner.isEmpty()) consumer.accept(inner);
+            }
+        } else if (stack.getItem() instanceof TemporaryLetterBinderItem && ModMagicActivation.isActive(entity)) {
             BundleContents contents = stack.getOrDefault(DataComponents.BUNDLE_CONTENTS, BundleContents.EMPTY);
             for (ItemStack inner : contents.itemsCopy()) {
                 if (!inner.isEmpty()) consumer.accept(inner);
