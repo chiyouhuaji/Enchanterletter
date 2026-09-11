@@ -2,6 +2,7 @@ package cn.autoforged.enchanter_letter.command;
 
 import cn.autoforged.enchanter_letter.ModDataComponents;
 import cn.autoforged.enchanter_letter.config.ModConfig;
+import cn.autoforged.enchanter_letter.effect.ModMagicActivation;
 import cn.autoforged.enchanter_letter.event.ModCommonEvents;
 import com.mojang.brigadier.CommandDispatcher;
 import com.mojang.brigadier.arguments.DoubleArgumentType;
@@ -21,6 +22,8 @@ import cn.autoforged.enchanter_letter.item.HeroMagicLetterItem;
 import cn.autoforged.enchanter_letter.item.KillMagicLetterItem;
 import cn.autoforged.enchanter_letter.item.LetterBinderItem;
 import cn.autoforged.enchanter_letter.item.MagicLetterItem;
+import cn.autoforged.enchanter_letter.item.ModItems;
+import cn.autoforged.enchanter_letter.item.TemporaryLetterBinderItem;
 import cn.autoforged.enchanter_letter.item.TenacityMagicLetterItem;
 import cn.autoforged.enchanter_letter.item.TimeMagicLetterItem;
 import cn.autoforged.enchanter_letter.item.TravelMagicLetterItem;
@@ -30,6 +33,7 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
+import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.item.ItemEntity;
 import net.minecraft.world.entity.player.Player;
@@ -37,6 +41,7 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.phys.Vec3;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
@@ -366,6 +371,15 @@ public class LetterCommands {
                         .then(Commands.argument("player", StringArgumentType.word())
                                 .suggests(PLAYER_OR_UUID_SUGGESTIONS)
                                 .executes(LetterCommands::deleteBindingWhitelist))));
+
+        // /letterclone <seconds> [targets] —— 手持手札合订本时，克隆为带计时的临时手札合订本；
+        // 未指定 targets 时默认克隆给自己(@s)，指定时按目标选择器克隆给对应玩家（如 @a/@p/@r 或玩家名）
+        dispatcher.register(Commands.literal("letterclone")
+                .requires(source -> source.hasPermission(2))
+                .then(Commands.argument("seconds", IntegerArgumentType.integer(1))
+                        .executes(LetterCommands::letterClone)
+                        .then(Commands.argument("targets", EntityArgument.players())
+                                .executes(LetterCommands::letterCloneTargets))));
 
     }
 
@@ -1187,6 +1201,83 @@ public class LetterCommands {
         ModConfig.save();
         context.getSource().sendSuccess(() -> Component.translatable(
                 "command.enchanter_letter.letterbinding.deleted", s), true);
+        return 1;
+    }
+
+    // ==================== /letterclone ====================
+
+    private static int letterClone(CommandContext<CommandSourceStack> context) {
+        if (!(context.getSource().getEntity() instanceof Player player)) {
+            context.getSource().sendFailure(Component.translatable("command.enchanter_letter.letterback.player_only"));
+            return 0;
+        }
+        return doLetterClone(context, player, "@s");
+    }
+
+    private static int letterCloneTargets(CommandContext<CommandSourceStack> context) throws CommandSyntaxException {
+        Collection<? extends ServerPlayer> targets = EntityArgument.getPlayers(context, "targets");
+        if (targets.isEmpty()) return 0;
+        String selector = rawSelector(context);
+        int result = 0;
+        for (ServerPlayer target : targets) {
+            result = Math.max(result, doLetterClone(context, target, selector));
+        }
+        return result;
+    }
+
+    /** 读取命令里原始的选择器字符串（未提供时默认为 @s）。 */
+    private static String rawSelector(CommandContext<CommandSourceStack> context) {
+        try {
+            String input = context.getInput();
+            if (input != null) {
+                int idx = input.lastIndexOf(' ');
+                if (idx >= 0) {
+                    return input.substring(idx + 1).trim();
+                }
+            }
+        } catch (Exception ignored) {}
+        return "@s";
+    }
+
+    /** 实际克隆逻辑：把合订本克隆为带计时的临时手札合订本并放入 player 背包。 */
+    private static int doLetterClone(CommandContext<CommandSourceStack> context, Player player, String selector) {
+        ItemStack binder = player.getMainHandItem();
+        if (binder.isEmpty() || !(binder.getItem() instanceof LetterBinderItem)) {
+            player.sendSystemMessage(Component.translatable("command.enchanter_letter.letterclone.require_binder"));
+            return 0;
+        }
+        int seconds = IntegerArgumentType.getInteger(context, "seconds");
+        if (seconds <= 0) {
+            player.sendSystemMessage(Component.translatable("command.enchanter_letter.letterclone.invalid_seconds"));
+            return 0;
+        }
+        ItemStack clone = new ItemStack(ModItems.TEMPORARY_LETTER_BINDER.get(), 1);
+        if (binder.hasTag()) clone.setTag(binder.getTag().copy());
+        TemporaryLetterBinderItem.setRemainingSeconds(clone, seconds);
+        // Inventory.add 会消耗/清空传入的 ItemStack，因此必须先保留副本用于生成 /give 命令
+        ItemStack savedCloneStack = clone.copy();
+        // 首次获得并自动激活：激活计数置为 1（0->1；再次激活到 2 后永久失效）
+        TemporaryLetterBinderItem.setActivationCount(clone, 1);
+        cn.autoforged.enchanter_letter.enchantment.ModEnchantments.addVanishing(clone);
+        if (!player.getInventory().add(clone)) {
+            player.sendSystemMessage(Component.translatable("command.enchanter_letter.letterclone.inventory_full"));
+            return 0;
+        }
+        ModMagicActivation.apply(player, seconds * 20);
+        // 1.20.1 命令规范：NBT 必须紧贴物品 ID（item{NBT}），数量放在 NBT 之后
+        String giveNbt = savedCloneStack.hasTag() ? savedCloneStack.getTag().toString() : "";
+        String giveCommand = "/give " + selector + " enchanter_letter:temporary_letter_binder" + giveNbt + " 1";
+        Component copyable = Component.literal(giveCommand).withStyle(style -> style
+                .withColor(net.minecraft.ChatFormatting.AQUA)
+                .withHoverEvent(new net.minecraft.network.chat.HoverEvent(
+                        net.minecraft.network.chat.HoverEvent.Action.SHOW_TEXT,
+                        Component.translatable("command.enchanter_letter.letterclone.copy_hint")))
+                .withClickEvent(new net.minecraft.network.chat.ClickEvent(
+                        net.minecraft.network.chat.ClickEvent.Action.COPY_TO_CLIPBOARD, giveCommand)));
+        player.sendSystemMessage(Component.translatable(
+                "command.enchanter_letter.letterclone.success", seconds).withStyle(net.minecraft.ChatFormatting.LIGHT_PURPLE));
+        player.sendSystemMessage(Component.translatable(
+                "command.enchanter_letter.letterclone.copy_header").append(" ").append(copyable));
         return 1;
     }
 }

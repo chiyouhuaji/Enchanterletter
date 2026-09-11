@@ -2,6 +2,8 @@ package cn.autoforged.enchanter_letter.event;
 
 import cn.autoforged.enchanter_letter.ModDataComponents;
 import cn.autoforged.enchanter_letter.config.ModConfig;
+import cn.autoforged.enchanter_letter.effect.ModMagicActivation;
+import cn.autoforged.enchanter_letter.effect.ModMagicObstruction;
 import cn.autoforged.enchanter_letter.enchantment.ModEnchantments;
 import cn.autoforged.enchanter_letter.integration.AccessoriesIntegration;
 import cn.autoforged.enchanter_letter.integration.CuriosIntegration;
@@ -15,6 +17,7 @@ import cn.autoforged.enchanter_letter.item.LetterPotions;
 import cn.autoforged.enchanter_letter.item.MagicLetterItem;
 import cn.autoforged.enchanter_letter.item.ModItems;
 import cn.autoforged.enchanter_letter.item.TenacityMagicLetterItem;
+import cn.autoforged.enchanter_letter.item.TemporaryLetterBinderItem;
 import cn.autoforged.enchanter_letter.item.TimeMagicLetterItem;
 import cn.autoforged.enchanter_letter.item.TravelMagicLetterItem;
 import cn.autoforged.enchanter_letter.item.TreasureMagicLetterItem;
@@ -46,7 +49,7 @@ public class ModCommonEvents {
     static final ResourceKey<DamageType> USEFULMAGIC_MAGIC =
             ResourceKey.create(Registries.DAMAGE_TYPE, new ResourceLocation("usefulmagic:magic"));
 
-    /** /kill 指令使用的伤害类型（不再计入坚韧手札承受伤害计数）。 */
+    /** /kill 鎸囦护浣跨敤鐨勪激瀹崇被鍨嬶紙涓嶅啀璁″叆鍧氶煣鎵嬫湱鎵垮彈浼ゅ璁℃暟锛夈€?*/
     private static final ResourceKey<DamageType> GENERIC_KILL =
             ResourceKey.create(Registries.DAMAGE_TYPE, new ResourceLocation("minecraft", "generic_kill"));
 
@@ -55,19 +58,21 @@ public class ModCommonEvents {
     private static final int MAX_STALE_TICKS = 100;
     private static final int BIND_CHECK_INTERVAL = 20;
     private static final double MAX_TRAVEL_PER_TICK = 100.0;
-    /** 旅行距离采样间隔（tick）：每 tick 全槽轮询会持续扫描在线玩家槽位，
-     *  最低加入 1 tick（0.05 秒）延迟，这里取 2 tick 采样一次。 */
-    private static final int TRAVEL_POLL_INTERVAL = 2;
+    /** 鏃呰璺濈閲囨牱闂撮殧锛坱ick锛夛細姣?tick 鍏ㄦЫ杞浼氭寔缁壂鎻忓湪绾跨帺瀹舵Ы浣嶏紝
+     *  鏈€浣庡姞鍏?1 tick锛?.05 绉掞級寤惰繜锛岃繖閲屽彇 2 tick 閲囨牱涓€娆°€?*/
+    private static final int TRAVEL_POLL_INTERVAL = 5;
     private static final int ACCESSORY_COMPAT_INTERVAL = 100;
     private static final int ARMOR_SYNC_INTERVAL = 10;
-    /** 手札药水效果轮询间隔（tick，每 1 秒；用世界时间判定循环，无需每 tick）。 */
+    /** 鎵嬫湱鑽按鏁堟灉杞闂撮殧锛坱ick锛屾瘡 1 绉掞紱鐢ㄤ笘鐣屾椂闂村垽瀹氬惊鐜紝鏃犻渶姣?tick锛夈€?*/
     private static final int POTION_POLL_INTERVAL = 20;
+    private static final int MAGIC_ACTIVATION_INTERVAL = 100;
 
     private static int accessoryCompatCooldown = ACCESSORY_COMPAT_INTERVAL;
     private static int bindCheckCooldown = BIND_CHECK_INTERVAL;
     private static int armorSyncCooldown = ARMOR_SYNC_INTERVAL;
     private static int travelPollCooldown = 0;
     private static int potionPollCooldown = POTION_POLL_INTERVAL;
+    private static int magicActivationCooldown = MAGIC_ACTIVATION_INTERVAL;
 
     private static final ThreadLocal<UUID> CONVERSION_IN_PROGRESS = new ThreadLocal<>();
 
@@ -97,7 +102,7 @@ public class ModCommonEvents {
 
     public static void register() {
         ServerLivingEntityEvents.AFTER_DEATH.register((entity, source) -> {
-            // 杀戮手札：持有者（玩家或生物）击杀任意生物/玩家 +1
+            // 鏉€鎴墜鏈細鎸佹湁鑰咃紙鐜╁鎴栫敓鐗╋級鍑绘潃浠绘剰鐢熺墿/鐜╁ +1
             if (source.getEntity() instanceof LivingEntity killer) {
                 scanEntitySlots(killer, stack -> {
                     if (stack.is(ModItems.KILL_MAGIC_LETTER.get())) {
@@ -108,11 +113,11 @@ public class ModCommonEvents {
             pendingDamages.remove(entity.getUUID());
         });
 
-        // 重生：返还死亡保留池（魔法绑定物品 / 溢出的非诅咒手札）
+        // 閲嶇敓锛氳繑杩樻浜′繚鐣欐睜锛堥瓟娉曠粦瀹氱墿鍝?/ 婧㈠嚭鐨勯潪璇呭拻鎵嬫湱锛?
         net.fabricmc.fabric.api.entity.event.v1.ServerPlayerEvents.AFTER_RESPAWN.register(
                 (oldPlayer, newPlayer, alive) -> LetterEntityEffects.onPlayerRespawn(newPlayer));
 
-        // 登出：清空保留池引用 + /letterstorage 截取状态
+        // 鐧诲嚭锛氭竻绌轰繚鐣欐睜寮曠敤 + /letterstorage 鎴彇鐘舵€?
         net.fabricmc.fabric.api.networking.v1.ServerPlayConnectionEvents.DISCONNECT.register(
                 (handler, server) -> {
                     LetterEntityEffects.onPlayerLogout(handler.player.getUUID());
@@ -123,12 +128,19 @@ public class ModCommonEvents {
             if (!(entity instanceof ItemEntity itemEntity)) return;
             ItemStack stack = itemEntity.getItem();
             if (stack.isEmpty()) return;
-            // 强制消失开启时：带有消失诅咒的物品一律阻止形成掉落物（包括生物的 NBT 装备转成掉落物）
-            if (ModConfig.getInstance().letterVanish.enabled && ModEnchantments.hasVanishing(stack)) {
+            // 涓存椂鎵嬫湱鍚堣鏈笉鍏佽鎴愪负鎺夎惤鐗╋細鐩存帴閿€姣?
+            if (TemporaryLetterBinderItem.isTemporaryBinder(stack)) {
                 entity.discard();
                 return;
             }
-            // 魔法绑定物品：持有人正死亡时兜底销毁并加入保留池（避免掉落丢失；重生时统一归还）
+            // 寮哄埗娑堝け寮€鍚椂锛氬甫鏈夋秷澶辫瘏鍜掔殑鐗╁搧涓€寰嬮樆姝㈠舰鎴愭帀钀界墿锛堝寘鎷敓鐗╃殑 NBT 瑁呭杞垚鎺夎惤鐗╋級
+            // 鏈ā缁勯€氳繃 addVanishing 鏍囪鐨勬秷澶辩墿鍝侊細蹇界暐 /lettervanish 寮€鍏筹紝涓€寰嬮攢姣併€?
+            if ((ModConfig.getInstance().letterVanish.enabled && ModEnchantments.hasVanishing(stack))
+                    || ModEnchantments.isModAppliedVanishing(stack)) {
+                entity.discard();
+                return;
+            }
+            // 榄旀硶缁戝畾鐗╁搧锛氭寔鏈変汉姝ｆ浜℃椂鍏滃簳閿€姣佸苟鍔犲叆淇濈暀姹狅紙閬垮厤鎺夎惤涓㈠け锛涢噸鐢熸椂缁熶竴褰掕繕锛?
             if (ModEnchantments.hasEffectiveMagicBinding(stack)) {
                 Optional<UUID> boundOpt = ModDataComponents.getBoundPlayer(stack);
                 if (boundOpt.isPresent() && world instanceof ServerLevel) {
@@ -142,7 +154,7 @@ public class ModCommonEvents {
                 }
             }
             if (isOurLetter(stack)) {
-                // 手札掉落物：白色发光（方便找到物品）+ 无重力、静止不动
+                // 鎵嬫湱鎺夎惤鐗╋細鐧借壊鍙戝厜锛堟柟渚挎壘鍒扮墿鍝侊級+ 鏃犻噸鍔涖€侀潤姝笉鍔?
                 entity.setGlowingTag(true);
                 entity.setNoGravity(true);
                 entity.setDeltaMovement(0.0, 0.0, 0.0);
@@ -165,13 +177,13 @@ public class ModCommonEvents {
                 AccessoriesIntegration.ensureAllSlotCompat(server.overworld());
             }
 
-            // 累计所有在线玩家的行走/飞行距离（旅行魔法手札）：带冷却，避免每 tick 全槽轮询
+            // 绱鎵€鏈夊湪绾跨帺瀹剁殑琛岃蛋/椋炶璺濈锛堟梾琛岄瓟娉曟墜鏈級锛氬甫鍐峰嵈锛岄伩鍏嶆瘡 tick 鍏ㄦЫ杞
             if (--travelPollCooldown <= 0) {
                 travelPollCooldown = TRAVEL_POLL_INTERVAL;
                 tickTravelDistances(server);
             }
 
-            // 手札护甲值/护甲韧性：以原版属性 modifier 形式常驻叠加（护甲条/Overloaded Armor Bar 可见；生物同样生效）
+            // 鎵嬫湱鎶ょ敳鍊?鎶ょ敳闊ф€э細浠ュ師鐗堝睘鎬?modifier 褰㈠紡甯搁┗鍙犲姞锛堟姢鐢叉潯/Overloaded Armor Bar 鍙锛涚敓鐗╁悓鏍风敓鏁堬級
             if (--armorSyncCooldown <= 0) {
                 armorSyncCooldown = ARMOR_SYNC_INTERVAL;
                 for (var player : server.getPlayerList().getPlayers()) {
@@ -185,7 +197,7 @@ public class ModCommonEvents {
                 }
             }
 
-            // 手札药水效果：对在线玩家（及携带手札的生物）按词条循环模式施加（世界时间判定）
+            // 鎵嬫湱鑽按鏁堟灉锛氬鍦ㄧ嚎鐜╁锛堝強鎼哄甫鎵嬫湱鐨勭敓鐗╋級鎸夎瘝鏉″惊鐜ā寮忔柦鍔狅紙涓栫晫鏃堕棿鍒ゅ畾锛?
             if (--potionPollCooldown <= 0) {
                 potionPollCooldown = POTION_POLL_INTERVAL;
                 for (var player : server.getPlayerList().getPlayers()) {
@@ -199,8 +211,14 @@ public class ModCommonEvents {
                 }
             }
 
-            // 光灵发光同步 / 生物消失诅咒零 UUID 绑定 / 掉落物定时清理
+            // 鍏夌伒鍙戝厜鍚屾 / 鐢熺墿娑堝け璇呭拻闆?UUID 缁戝畾 / 鎺夎惤鐗╁畾鏃舵竻鐞?
             LetterEntityEffects.tick(server);
+
+            // 榄旀硶婵€娲伙細淇濊瘉涓存椂鎵嬫湱鍚堣鏈寔鏈夎€呰幏寰楁晥鏋滐紱鏁堟灉娑堝け鏃舵竻鐞嗕复鏃跺悎璁㈡湰锛堟瘡 5 绉掞級
+            if (--magicActivationCooldown <= 0) {
+                magicActivationCooldown = MAGIC_ACTIVATION_INTERVAL;
+                ModMagicActivation.tick(server);
+            }
 
             if (pendingDamages.isEmpty()) return;
 
@@ -248,11 +266,12 @@ public class ModCommonEvents {
     }
 
     /**
-     * 抗性提升：受害者携带的手札按“原版抗性提升药水”逻辑减免伤害
-     * （减免比例 = 等级 × 每级增长，最终取 min(减免, 服务器配置上限)）。
-     * 功能开关或减免为 0 时原样返回。
+     * 鎶楁€ф彁鍗囷細鍙楀鑰呮惡甯︾殑鎵嬫湱鎸夆€滃師鐗堟姉鎬ф彁鍗囪嵂姘粹€濋€昏緫鍑忓厤浼ゅ
+     * 锛堝噺鍏嶆瘮渚?= 绛夌骇 脳 姣忕骇澧為暱锛屾渶缁堝彇 min(鍑忓厤, 鏈嶅姟鍣ㄩ厤缃笂闄?锛夈€?
+     * 鍔熻兘寮€鍏虫垨鍑忓厤涓?0 鏃跺師鏍疯繑鍥炪€?
      */
     public static float applyResistanceReduction(LivingEntity victim, float amount) {
+        if (ModMagicObstruction.blocksAll(victim)) return amount;
         if (amount <= 0) return amount;
         ModConfig config = ModConfig.getInstance();
         if (!config.letterResistance.enabled) return amount;
@@ -270,19 +289,18 @@ public class ModCommonEvents {
     public static boolean isLetterBoosted(DamageSource source) {
         if (source.is(USEFULMAGIC_MAGIC)) return true;
         Optional<ResourceKey<DamageType>> keyOpt = source.typeHolder().unwrapKey();
-        if (keyOpt.isEmpty()) return false;
         return ModConfig.getInstance().getDefaultBonusDamageTypes().contains(keyOpt.get().location());
     }
 
     /**
-     * 是否应对本次伤害进行手札增益：
-     * 1) 命中可增益伤害类型（玩家行为），或
-     * 2) 攻击者为“生物”（非玩家 LivingEntity）且其主副手/装备持有生效手札时就对其所有伤害增益，
-     *    不再要求伤害类型匹配（需求：生物持有手札时对所有产生的伤害进行增益）。
+     * 鏄惁搴斿鏈浼ゅ杩涜鎵嬫湱澧炵泭锛?
+     * 1) 鍛戒腑鍙鐩婁激瀹崇被鍨嬶紙鐜╁琛屼负锛夛紝鎴?
+     * 2) 鏀诲嚮鑰呬负鈥滅敓鐗┾€濓紙闈炵帺瀹?LivingEntity锛変笖鍏朵富鍓墜/瑁呭鎸佹湁鐢熸晥鎵嬫湱鏃跺氨瀵瑰叾鎵€鏈変激瀹冲鐩婏紝
+     *    涓嶅啀瑕佹眰浼ゅ绫诲瀷鍖归厤锛堥渶姹傦細鐢熺墿鎸佹湁鎵嬫湱鏃跺鎵€鏈変骇鐢熺殑浼ゅ杩涜澧炵泭锛夈€?
      */
     public static boolean shouldApplyLetterBoost(DamageSource source) {
-        if (isLetterBoosted(source)) return true;
         Entity attacker = source.getEntity();
+        if (isLetterBoosted(source)) return true;
         if (attacker instanceof LivingEntity holder && !(holder instanceof Player)) {
             return hasEffectiveLetter(holder);
         }
@@ -290,7 +308,6 @@ public class ModCommonEvents {
     }
 
     private static boolean hasEffectiveLetter(LivingEntity holder) {
-        if (holder == null) return false;
         return !collectEffectiveLetters(holder, holder.level()).isEmpty();
     }
 
@@ -313,19 +330,16 @@ public class ModCommonEvents {
     public static boolean onUsefulMagicIncomingDamage(LivingEntity victim, DamageSource source, float amount) {
         Entity attacker = source.getEntity();
         if (!(attacker instanceof LivingEntity holder)) return false;
-
         if (amount <= 0.0F) return false;
         if (isBlacklistedEntity(victim)) return false;
 
         var groups = buildConversionGroups(holder, victim.level());
-        if (groups.isEmpty()) return false;
 
         ResourceLocation sourceTypeLoc = source.typeHolder().unwrapKey().map(key -> key.location()).orElse(null);
 
         ConversionDamageState state = pendingDamages.get(victim.getUUID());
         if (state == null) {
             if (pendingDamages.size() >= MAX_PENDING_VICTIMS) {
-                return false;
             }
             state = new ConversionDamageState();
             state.countdown = Math.max(1, (int) (ModConfig.getInstance().magicConversion.intervalSeconds * 20));
@@ -421,7 +435,7 @@ public class ModCommonEvents {
         });
     }
 
-    /** 坚韧魔法手札：实体（玩家或生物）承受的伤害累计。 */
+    /** 鍧氶煣榄旀硶鎵嬫湱锛氬疄浣擄紙鐜╁鎴栫敓鐗╋級鎵垮彈鐨勪激瀹崇疮璁°€?*/
     public static void onEntityDamageTaken(LivingEntity entity, float amount) {
         if (entity.level().isClientSide || amount <= 0) return;
         scanEntitySlots(entity, stack -> {
@@ -483,12 +497,38 @@ public class ModCommonEvents {
     }
 
     public static boolean isOurModItem(ItemStack stack) {
-        return stack.getItem() instanceof MagicLetterItem || stack.getItem() instanceof LetterBinderItem;
+        return stack.getItem() instanceof MagicLetterItem || stack.getItem() instanceof LetterBinderItem
+                || stack.getItem() instanceof TemporaryLetterBinderItem;
+    }
+
+    /**
+     * 鏄惁搴斿己鍒舵竻闄よ鐗╁搧锛堜綔涓烘帀钀界墿涓€寰嬮攢姣侊紱鐜╁涓诲姩涓㈠嚭鐨勪复鏃跺悎璁㈡湰璧?onItemToss 鏀捐涓烘甯告帀钀界墿锛夈€?
+     * - 涓存椂鎵嬫湱鍚堣鏈細娌℃湁浠讳綍缁戝畾閫昏緫锛屾棤璁洪檮榄斿姛鑳藉紑鍏充笌鍚﹂兘鐩存帴娓呴櫎锛?lettervanish 鍊欒ˉ鎴愬憳锛夈€?
+     * - 寮哄埗娑堝け寮€鍚椂锛氬甫娑堝け璇呭拻鐨勭墿鍝佺洿鎺ユ竻闄ゃ€?
+     */
+    public static boolean shouldVanishClear(ItemStack stack) {
+        if (stack.isEmpty()) return false;
+        // 1) 鐧藉悕鍗曟垚鍛橈紙鍚?addVanishing 鏍囪锛夛細鏃犺寮€鍏筹紝濮嬬粓寮哄埗娑堝け銆?
+        if (ModEnchantments.isModAppliedVanishing(stack) || isForceVanishWhitelisted(stack)) return true;
+        // 2) 寮€鍏冲紑鍚細鏀捐鎵€鏈夊甫娑堝け璇呭拻鐨勭墿鍝併€?
+        if (ModConfig.getInstance().letterVanish.enabled) return ModEnchantments.hasVanishing(stack);
+        // 3) 寮€鍏冲叧闂細鍙湁鐧藉悕鍗曠墿鍝佽Е鍙戯紝鍏朵綑鎷︽埅锛堜笉娑堝け锛夈€?
+        return false;
+    }
+
+    /** 鏄惁涓哄己鍒舵秷澶辩櫧鍚嶅崟鎴愬憳锛堟寜鐗╁搧娉ㄥ唽鍚嶏紝濡?enchanter_letter:temporary_letter_binder锛夈€?*/
+    private static boolean isForceVanishWhitelisted(ItemStack stack) {
+        if (stack == null || stack.isEmpty()) return false;
+        List<String> whitelist = ModConfig.getInstance().letterVanish.forceVanishWhitelist;
+        if (whitelist == null || whitelist.isEmpty()) return false;
+        String itemKey = ModEnchantments.getItemKeyString(stack);
+        if (itemKey.isEmpty()) return false;
+        return whitelist.contains(itemKey);
     }
 
     private static boolean isForeignBound(Player player, ItemStack stack) {
         if (ModConfig.getInstance().letterBinding.uuidWhitelist.contains(player.getUUID().toString())) {
-            return false; // 弹出白名单：该玩家可持有任意玩家 ID 绑定的手札/合订本而不弹出
+            return false; // 寮瑰嚭鐧藉悕鍗曪細璇ョ帺瀹跺彲鎸佹湁浠绘剰鐜╁ ID 缁戝畾鐨勬墜鏈?鍚堣鏈€屼笉寮瑰嚭
         }
         Optional<UUID> bound = ModDataComponents.getBoundPlayer(stack);
         return bound.isPresent() && !bound.get().equals(player.getUUID());
@@ -568,8 +608,8 @@ public class ModCommonEvents {
     }
 
     /**
-     * 扫描实体携带的手札槽位：玩家含背包/盔甲/副手/饰品（Curios + Accessories），
-     * 生物含手持/盔甲/饰品。用于让生物装备的手札同样对护甲/韧性/抗性/伤害/光灵生效。
+     * 鎵弿瀹炰綋鎼哄甫鐨勬墜鏈Ы浣嶏細鐜╁鍚儗鍖?鐩旂敳/鍓墜/楗板搧锛圕urios + Accessories锛夛紝
+     * 鐢熺墿鍚墜鎸?鐩旂敳/楗板搧銆傜敤浜庤鐢熺墿瑁呭鐨勬墜鏈悓鏍峰鎶ょ敳/闊ф€?鎶楁€?浼ゅ/鍏夌伒鐢熸晥銆?
      */
     private static void scanEntitySlots(LivingEntity entity, java.util.function.Consumer<ItemStack> consumer) {
         if (entity instanceof Player player) {
@@ -589,6 +629,13 @@ public class ModCommonEvents {
         if (stack.isEmpty()) return;
         consumer.accept(stack);
         if (stack.getItem() instanceof LetterBinderItem) {
+            NonNullList<ItemStack> contents = LetterBinderItem.readContents(stack);
+            for (ItemStack inner : contents) {
+                if (!inner.isEmpty()) {
+                    consumer.accept(inner);
+                }
+            }
+        } else if (stack.getItem() instanceof TemporaryLetterBinderItem && ModMagicActivation.isActive(entity)) {
             NonNullList<ItemStack> contents = LetterBinderItem.readContents(stack);
             for (ItemStack inner : contents) {
                 if (!inner.isEmpty()) {
@@ -670,6 +717,7 @@ public class ModCommonEvents {
     }
 
     private static double computeDirectMultiplier(LivingEntity holder, Level level) {
+        if (ModMagicObstruction.blocksDamage(holder)) return 0;
         double total = 0;
         for (LetterInfo info : collectEffectiveLetters(holder, level)) {
             if (info.enchanted) continue;
@@ -679,6 +727,7 @@ public class ModCommonEvents {
     }
 
     private static List<TypeGroup> buildConversionGroups(LivingEntity holder, Level level) {
+        if (ModMagicObstruction.blocksDamage(holder)) return List.of();
         Map<ResourceLocation, List<Double>> byType = new LinkedHashMap<>();
         for (LetterInfo info : collectEffectiveLetters(holder, level)) {
             if (!info.enchanted) continue;

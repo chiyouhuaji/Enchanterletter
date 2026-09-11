@@ -5,6 +5,7 @@ import cn.autoforged.enchanter_letter.command.LetterDamageCommand;
 import cn.autoforged.enchanter_letter.command.LetterEffectCommand;
 import cn.autoforged.enchanter_letter.command.LetterStorageCommand;
 import cn.autoforged.enchanter_letter.config.ModConfig;
+import cn.autoforged.enchanter_letter.effect.ModEffects;
 import cn.autoforged.enchanter_letter.enchantment.ModEnchantments;
 import cn.autoforged.enchanter_letter.event.ModCommonEvents;
 import cn.autoforged.enchanter_letter.integration.AccessoriesIntegration;
@@ -25,6 +26,7 @@ public class UsefulMagicEnchanterLetterMod implements ModInitializer {
     @Override
     public void onInitialize() {
         ModConfig.init();
+        ModEffects.register();
         ModEnchantments.register();
         ModItems.registerItems();
         // 阻止 Accessories 右键抢先装备（canEquipFromUse=false），保证手札 shift+右键绑定可用

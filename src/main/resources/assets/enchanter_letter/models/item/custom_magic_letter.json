@@ -1,4 +1,4 @@
-﻿{
+{
   "parent": "minecraft:item/generated",
   "textures": {
     "layer0": "enchanter_letter:item/custom_magic_letter"

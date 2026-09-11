@@ -1,4 +1,4 @@
-// 1.20.1	2026-08-16T14:48:23.4399843	魔法手札/Model Definitions
+// 1.20.1	2026-09-08T21:07:56.5960103	魔法手札/Model Definitions
 43bf96cc0e4127c06cad88f4ae6c7e817e0db0f0 assets\enchanter_letter\models\item\time_magic_letter.json
 b6c158605a97d171f715eeeaed561eb689f45684 assets\enchanter_letter\models\item\stage_7_magic_letter.json
 c811aeddd3ac8743a53bfd49cc99d50ffb2443ec assets\enchanter_letter\models\item\stage_4_magic_letter.json
@@ -13,6 +13,7 @@ bf569bdcd1a25f20098abf6336af120a3e6bda6d assets\enchanter_letter\models\item\ten
 0f6a1e821119c54aecefecde99abb17ed3ce3f31 assets\enchanter_letter\models\item\fishing_magic_letter.json
 b0d2cbeb06c7c527e7a2f7022b05008410569da8 assets\enchanter_letter\models\item\stage_1_magic_letter.json
 ea1862af34e5007cd4b2909d87ff076cd744ae9e assets\enchanter_letter\models\item\stage_6_magic_letter.json
+8fae950a0278fe798ae0a90808fae7f16cc7ff46 assets\enchanter_letter\models\item\temporary_letter_binder.json
 d5c87b58107a45353487b370cc0edadfc31dcafb assets\enchanter_letter\models\item\stage_3_magic_letter.json
 ce761dea50465a8420a18c494ee380840e51ac11 assets\enchanter_letter\models\item\treasure_magic_letter.json
 41eb1b5dd1d11e52bea49ca452de7cac6d9a1704 assets\enchanter_letter\models\item\kill_magic_letter.json

@@ -10,6 +10,7 @@ import com.mojang.brigadier.suggestion.SuggestionProvider;
 import net.minecraft.ChatFormatting;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.commands.Commands;
+import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.chat.ClickEvent;
 import net.minecraft.network.chat.Component;
@@ -199,13 +200,29 @@ public class LetterStorageCommand {
         String nbt = tag.toString();
         MutableComponent header = Component.translatable(
                 "command.enchanter_letter.letterstorage.nbt_header", entity.getDisplayName().getString());
+        // 生物名 / UUID / 实体ID 均可点击复制。
+        MutableComponent info = Component.translatable(
+                "command.enchanter_letter.letterstorage.captured_header");
+        info.append(clickableCopy(entity.getDisplayName().getString(), "command.enchanter_letter.letterstorage.copy_name_hint"))
+                .append("  ")
+                .append(clickableCopy(entity.getUUID().toString(), "command.enchanter_letter.letterstorage.copy_uuid_hint"))
+                .append("  ")
+                .append(clickableCopy(BuiltInRegistries.ENTITY_TYPE.getKey(entity.getType()).toString(), "command.enchanter_letter.letterstorage.copy_entity_id_hint"));
         Component clickable = Component.literal(nbt).withStyle(style -> style
                 .withColor(ChatFormatting.AQUA)
                 .withHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT,
                         Component.translatable("command.enchanter_letter.letterstorage.nbt_copy_hint")))
                 .withClickEvent(new ClickEvent(ClickEvent.Action.COPY_TO_CLIPBOARD, nbt)));
-        source.sendSuccess(() -> header.append(" ").append(clickable), true);
+        source.sendSuccess(() -> header.append(" ").append(clickable).append("\n").append(info), true);
         return 1;
+    }
+
+    private static MutableComponent clickableCopy(String text, String hoverKey) {
+        return Component.literal(text).withStyle(style -> style
+                .withColor(ChatFormatting.AQUA)
+                .withHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT,
+                        Component.translatable(hoverKey)))
+                .withClickEvent(new ClickEvent(ClickEvent.Action.COPY_TO_CLIPBOARD, text)));
     }
 
     private static Entity findEntity(net.minecraft.server.MinecraftServer server, UUID uuid) {

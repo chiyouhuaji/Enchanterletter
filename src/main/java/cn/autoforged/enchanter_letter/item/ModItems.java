@@ -60,6 +60,10 @@ public class ModItems {
             register("letter_binder",
                     () -> new LetterBinderItem(new Item.Properties().stacksTo(1).rarity(Rarity.EPIC).fireResistant()));
 
+    public static final Supplier<TemporaryLetterBinderItem> TEMPORARY_LETTER_BINDER =
+            registerBinder("temporary_letter_binder",
+                    () -> new TemporaryLetterBinderItem(new Item.Properties().stacksTo(1).rarity(Rarity.EPIC).fireResistant()));
+
     public static final Supplier<StageMagicLetterItem> STAGE_1_MAGIC_LETTER =
             register("stage_1_magic_letter",
                     () -> new StageMagicLetterItem(new Item.Properties().stacksTo(1).rarity(Rarity.COMMON).fireResistant(), 1));
@@ -109,6 +113,15 @@ public class ModItems {
         return result;
     }
 
+    /** 合订本/临时合订本不是手札，不加入 ALL_LETTERS。 */
+    private static <T extends Item> Supplier<T> registerBinder(String name, Supplier<T> supplier) {
+        T item = supplier.get();
+        Registry.register(BuiltInRegistries.ITEM,
+                new ResourceLocation(UsefulMagicEnchanterLetterMod.MOD_ID, name), item);
+        Supplier<T> result = () -> item;
+        return result;
+    }
+
     public static final ResourceKey<CreativeModeTab> MAGIC_LETTERS_TAB_KEY =
             ResourceKey.create(Registries.CREATIVE_MODE_TAB,
                     new ResourceLocation(UsefulMagicEnchanterLetterMod.MOD_ID, "magic_letters"));
@@ -134,6 +147,7 @@ public class ModItems {
                             output.accept(HERO_MAGIC_LETTER.get());
                             output.accept(CUSTOM_MAGIC_LETTER.get());
                             output.accept(LETTER_BINDER.get());
+                            output.accept(TEMPORARY_LETTER_BINDER.get());
                             output.accept(STAGE_1_MAGIC_LETTER.get());
                             output.accept(STAGE_2_MAGIC_LETTER.get());
                             output.accept(STAGE_3_MAGIC_LETTER.get());

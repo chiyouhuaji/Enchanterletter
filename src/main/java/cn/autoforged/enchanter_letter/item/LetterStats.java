@@ -2,6 +2,8 @@ package cn.autoforged.enchanter_letter.item;
 
 import cn.autoforged.enchanter_letter.ModDataComponents;
 import cn.autoforged.enchanter_letter.config.ModConfig;
+import cn.autoforged.enchanter_letter.effect.ModMagicActivation;
+import cn.autoforged.enchanter_letter.effect.ModMagicObstruction;
 import cn.autoforged.enchanter_letter.enchantment.ModEnchantments;
 import cn.autoforged.enchanter_letter.integration.AccessoriesIntegration;
 import cn.autoforged.enchanter_letter.integration.CuriosIntegration;
@@ -133,6 +135,7 @@ public class LetterStats {
      * 有效护甲值：allow_multiple_letters 关闭时取所有手札中最大的护甲值，开启时全部相加。
      */
     public static double effectiveArmor(LivingEntity player, Level level) {
+        if (ModMagicObstruction.blocksArmor(player)) return 0;
         List<Entry> entries = collectEntries(player, level);
         if (entries.isEmpty()) return 0;
         if (ModConfig.getInstance().stackingRules.allowMultipleLetters) {
@@ -149,6 +152,7 @@ public class LetterStats {
      * 有效护甲韧性：allow_multiple_letters 关闭时取所有手札中最大的韧性值，开启时全部相加。
      */
     public static double effectiveToughness(LivingEntity player, Level level) {
+        if (ModMagicObstruction.blocksArmor(player)) return 0;
         List<Entry> entries = collectEntries(player, level);
         if (entries.isEmpty()) return 0;
         if (ModConfig.getInstance().stackingRules.allowMultipleLetters) {
@@ -165,6 +169,7 @@ public class LetterStats {
      * 有效抗性减免比例：allow_multiple_letters 关闭时取所有手札中最大的减免，开启时全部相加。
      */
     public static double effectiveResistance(LivingEntity player, Level level) {
+        if (ModMagicObstruction.blocksAll(player)) return 0;
         List<Entry> entries = collectEntries(player, level);
         if (entries.isEmpty()) return 0;
         if (ModConfig.getInstance().stackingRules.allowMultipleLetters) {
@@ -182,6 +187,7 @@ public class LetterStats {
      * 返回 {护甲, 韧性}。
      */
     public static double[] armorToughnessBonus(LivingEntity player, Level level) {
+        if (ModMagicObstruction.blocksArmor(player)) return new double[]{0, 0};
         return new double[]{effectiveArmor(player, level), effectiveToughness(player, level)};
     }
 
@@ -279,6 +285,11 @@ public class LetterStats {
         if (stack.isEmpty()) return;
         consumer.accept(stack);
         if (stack.getItem() instanceof LetterBinderItem) {
+            NonNullList<ItemStack> contents = LetterBinderItem.readContents(stack);
+            for (ItemStack inner : contents) {
+                if (!inner.isEmpty()) consumer.accept(inner);
+            }
+        } else if (stack.getItem() instanceof TemporaryLetterBinderItem && ModMagicActivation.isActive(entity)) {
             NonNullList<ItemStack> contents = LetterBinderItem.readContents(stack);
             for (ItemStack inner : contents) {
                 if (!inner.isEmpty()) consumer.accept(inner);

@@ -4,6 +4,7 @@ import cn.autoforged.enchanter_letter.UsefulMagicEnchanterLetterMod;
 import cn.autoforged.enchanter_letter.config.ModClientConfig;
 import cn.autoforged.enchanter_letter.config.ModConfig;
 import cn.autoforged.enchanter_letter.enchantment.ModEnchantments;
+import cn.autoforged.enchanter_letter.effect.ModMagicObstruction;
 import cn.autoforged.enchanter_letter.integration.AccessoriesIntegration;
 import cn.autoforged.enchanter_letter.integration.CuriosIntegration;
 import cn.autoforged.enchanter_letter.item.LetterBinderItem;
@@ -51,12 +52,14 @@ public class ModClientEvents {
     private static final int COLOR_ARMOR = 0xFFFFFF55;
     private static final int COLOR_TOUGHNESS = 0xFF5555FF;
     private static final int COLOR_RESISTANCE = 0xFFAA00AA;
+    /** 魔法阻碍使手札失效时词条的颜色（与效果同色 0x7B2D9A）。 */
+    private static final int COLOR_DISABLED = 0xFF7B2D9A;
     private static final String KEY_TOGGLE_HUD = "key." + UsefulMagicEnchanterLetterMod.MOD_ID + ".toggle_hud";
     private static final int ACCESSORY_COMPAT_INTERVAL = 100;
     /** 客户端饰品栏缓存刷新间隔（tick）：避免每 tick 反射遍历 Curios 槽位，最低 1 tick 延迟（0.05 秒）。 */
-    private static final int CURIOS_CACHE_INTERVAL = 2;
+    private static final int CURIOS_CACHE_INTERVAL = 5;
     /** HUD 手札条目缓存刷新间隔（tick）：避免每帧全槽扫描，最低 1 tick 延迟（0.05 秒）。 */
-    private static final int HUD_ENTRIES_INTERVAL = 2;
+    private static final int HUD_ENTRIES_INTERVAL = 5;
 
     private static KeyMapping toggleHudKey;
     private static List<ItemStack> cachedCuriosStacks = List.of();
@@ -188,6 +191,21 @@ public class ModClientEvents {
         }
     }
 
+    /** 魔法阻碍是否使当前 HUD 显示模式下的手札条目失效（客户端按玩家状态判断）。 */
+    private static boolean isObstructedForMode(Minecraft mc, int mode) {
+        if (mc.player == null) return false;
+        int level = ModMagicObstruction.getLevel(mc.player);
+        switch (mode) {
+            case MODE_ARMOR:
+            case MODE_TOUGHNESS:
+                return level >= 2;
+            case MODE_RESISTANCE:
+                return level >= 3;
+            default:
+                return level >= 1;
+        }
+    }
+
     private static boolean handleHudEntry(GuiGraphics guiGraphics, Minecraft mc, LetterStats.Entry e, int mode, int y, boolean effective) {
         Component display;
         if (mode == MODE_ARMOR) {
@@ -208,7 +226,8 @@ public class ModClientEvents {
                         e.stack.getDisplayName(), e.level, PERCENT_FORMAT.format(e.damageMultiplier));
             }
         }
-        int color = effective ? 0xFFFFFF : 0x666666;
+        boolean obstructed = isObstructedForMode(mc, mode);
+        int color = obstructed ? COLOR_DISABLED : (effective ? 0xFFFFFF : 0x666666);
         guiGraphics.drawString(mc.font, display, 4, y, color, true);
         return true;
     }

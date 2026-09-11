@@ -6,8 +6,13 @@ import cn.autoforged.enchanter_letter.storage.LetterStorageManager;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
 import net.fabricmc.fabric.api.networking.v1.PacketByteBufs;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
+import net.minecraft.ChatFormatting;
 import net.minecraft.network.FriendlyByteBuf;
+import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.network.chat.ClickEvent;
 import net.minecraft.network.chat.Component;
+import net.minecraft.network.chat.HoverEvent;
+import net.minecraft.network.chat.MutableComponent;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
@@ -38,8 +43,17 @@ public class LetterStoragePayloads {
                 if (target == null) return;
                 LetterStorageManager.setCaptured(player, entityId);
                 String name = target.getDisplayName().getString();
-                player.sendSystemMessage(Component.translatable(
-                        "command.enchanter_letter.letterstorage.captured", name, entityId.toString()));
+                String uuidText = entityId.toString();
+                String entityIdText = BuiltInRegistries.ENTITY_TYPE.getKey(target.getType()).toString();
+                // 生物名 / UUID / 实体ID 均可点击复制。
+                MutableComponent msg = Component.translatable(
+                        "command.enchanter_letter.letterstorage.captured_header");
+                msg.append(clickableCopy(name, "command.enchanter_letter.letterstorage.copy_name_hint"))
+                        .append("  ")
+                        .append(clickableCopy(uuidText, "command.enchanter_letter.letterstorage.copy_uuid_hint"))
+                        .append("  ")
+                        .append(clickableCopy(entityIdText, "command.enchanter_letter.letterstorage.copy_entity_id_hint"));
+                player.sendSystemMessage(msg);
             });
         });
     }
@@ -65,6 +79,14 @@ public class LetterStoragePayloads {
         FriendlyByteBuf buf = PacketByteBufs.create();
         buf.writeBoolean(active);
         ServerPlayNetworking.send(player, MODE_PACKET_ID, buf);
+    }
+
+    private static MutableComponent clickableCopy(String text, String hoverKey) {
+        return Component.literal(text).withStyle(style -> style
+                .withColor(ChatFormatting.AQUA)
+                .withHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT,
+                        Component.translatable(hoverKey)))
+                .withClickEvent(new ClickEvent(ClickEvent.Action.COPY_TO_CLIPBOARD, text)));
     }
 
     private static Entity findEntity(MinecraftServer server, UUID uuid) {
