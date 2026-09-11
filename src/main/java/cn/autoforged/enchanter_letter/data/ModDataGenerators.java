@@ -52,6 +52,7 @@ public class ModDataGenerators implements DataGeneratorEntrypoint {
             generateFlatItem(gen, cn.autoforged.enchanter_letter.item.ModItems.STAGE_8_MAGIC_LETTER.get());
             generateFlatItem(gen, cn.autoforged.enchanter_letter.item.ModItems.STAGE_9_MAGIC_LETTER.get());
             generateFlatItem(gen, cn.autoforged.enchanter_letter.item.ModItems.STAGE_10_MAGIC_LETTER.get());
+            generateFlatItem(gen, cn.autoforged.enchanter_letter.item.ModItems.TEMPORARY_LETTER_BINDER.get());
         }
 
         private void generateFlatItem(ItemModelGenerators gen, Item item) {
@@ -79,6 +80,7 @@ public class ModDataGenerators implements DataGeneratorEntrypoint {
                 }
                 // 手札合订本同样允许放入任意 Curios 槽位
                 tag.add(BuiltInRegistries.ITEM.getResourceKey(cn.autoforged.enchanter_letter.item.ModItems.LETTER_BINDER.get()).get());
+                tag.add(BuiltInRegistries.ITEM.getResourceKey(cn.autoforged.enchanter_letter.item.ModItems.TEMPORARY_LETTER_BINDER.get()).get());
             }
         }
     }

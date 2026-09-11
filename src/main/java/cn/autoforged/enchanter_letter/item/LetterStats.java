@@ -2,6 +2,8 @@ package cn.autoforged.enchanter_letter.item;
 
 import cn.autoforged.enchanter_letter.ModDataComponents;
 import cn.autoforged.enchanter_letter.config.ModConfig;
+import cn.autoforged.enchanter_letter.effect.ModMagicActivation;
+import cn.autoforged.enchanter_letter.effect.ModMagicObstruction;
 import cn.autoforged.enchanter_letter.enchantment.ModEnchantments;
 import cn.autoforged.enchanter_letter.integration.AccessoriesIntegration;
 import cn.autoforged.enchanter_letter.integration.CuriosIntegration;
@@ -109,6 +111,7 @@ public class LetterStats {
     }
 
     public static double effectiveArmor(LivingEntity player, Level level) {
+        if (ModMagicObstruction.blocksArmor(player)) return 0;
         List<Entry> entries = collectEntries(player, level);
         if (entries.isEmpty()) return 0;
         if (ModConfig.getInstance().stackingRules.allowMultipleLetters) {
@@ -122,6 +125,7 @@ public class LetterStats {
     }
 
     public static double effectiveToughness(LivingEntity player, Level level) {
+        if (ModMagicObstruction.blocksArmor(player)) return 0;
         List<Entry> entries = collectEntries(player, level);
         if (entries.isEmpty()) return 0;
         if (ModConfig.getInstance().stackingRules.allowMultipleLetters) {
@@ -135,6 +139,7 @@ public class LetterStats {
     }
 
     public static double effectiveResistance(LivingEntity player, Level level) {
+        if (ModMagicObstruction.blocksAll(player)) return 0;
         List<Entry> entries = collectEntries(player, level);
         if (entries.isEmpty()) return 0;
         if (ModConfig.getInstance().stackingRules.allowMultipleLetters) {
@@ -148,6 +153,7 @@ public class LetterStats {
     }
 
     public static double[] armorToughnessBonus(LivingEntity player, Level level) {
+        if (ModMagicObstruction.blocksArmor(player)) return new double[]{0, 0};
         return new double[]{effectiveArmor(player, level), effectiveToughness(player, level)};
     }
 
@@ -241,6 +247,11 @@ public class LetterStats {
         if (stack.isEmpty()) return;
         consumer.accept(stack);
         if (stack.getItem() instanceof LetterBinderItem) {
+            BundleContents contents = stack.getOrDefault(DataComponents.BUNDLE_CONTENTS, BundleContents.EMPTY);
+            for (ItemStack inner : contents.itemsCopy()) {
+                if (!inner.isEmpty()) consumer.accept(inner);
+            }
+        } else if (stack.getItem() instanceof TemporaryLetterBinderItem && ModMagicActivation.isActive(entity)) {
             BundleContents contents = stack.getOrDefault(DataComponents.BUNDLE_CONTENTS, BundleContents.EMPTY);
             for (ItemStack inner : contents.itemsCopy()) {
                 if (!inner.isEmpty()) consumer.accept(inner);

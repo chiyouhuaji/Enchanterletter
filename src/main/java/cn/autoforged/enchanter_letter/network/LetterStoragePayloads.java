@@ -6,9 +6,14 @@ import cn.autoforged.enchanter_letter.storage.LetterStorageManager;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
 import net.fabricmc.fabric.api.networking.v1.PayloadTypeRegistry;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
+import net.minecraft.ChatFormatting;
 import net.minecraft.core.UUIDUtil;
+import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.network.FriendlyByteBuf;
+import net.minecraft.network.chat.ClickEvent;
 import net.minecraft.network.chat.Component;
+import net.minecraft.network.chat.HoverEvent;
+import net.minecraft.network.chat.MutableComponent;
 import net.minecraft.network.codec.ByteBufCodecs;
 import net.minecraft.network.codec.StreamCodec;
 import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
@@ -74,8 +79,17 @@ public class LetterStoragePayloads {
                 if (id.equals(LetterStorageManager.getCapturedId(player))) return;
                 LetterStorageManager.setCaptured(player, id);
                 String name = target.getDisplayName().getString();
-                player.sendSystemMessage(Component.translatable(
-                        "command.enchanter_letter.letterstorage.captured", name, id.toString()));
+                String uuidText = id.toString();
+                String entityIdText = BuiltInRegistries.ENTITY_TYPE.getKey(target.getType()).toString();
+                // 生物名 / UUID / 实体ID 均可点击复制。
+                MutableComponent msg = Component.translatable(
+                        "command.enchanter_letter.letterstorage.captured_header");
+                msg.append(clickableCopy(name, "command.enchanter_letter.letterstorage.copy_name_hint"))
+                        .append("  ")
+                        .append(clickableCopy(uuidText, "command.enchanter_letter.letterstorage.copy_uuid_hint"))
+                        .append("  ")
+                        .append(clickableCopy(entityIdText, "command.enchanter_letter.letterstorage.copy_entity_id_hint"));
+                player.sendSystemMessage(msg);
             });
         });
     }
@@ -95,6 +109,14 @@ public class LetterStoragePayloads {
     /** 服务端同步交互模式给指定玩家。 */
     public static void sendModeToClient(ServerPlayer player, boolean active) {
         ServerPlayNetworking.send(player, new ModePayload(active));
+    }
+
+    private static MutableComponent clickableCopy(String text, String hoverKey) {
+        return Component.literal(text).withStyle(style -> style
+                .withColor(ChatFormatting.AQUA)
+                .withHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT,
+                        Component.translatable(hoverKey)))
+                .withClickEvent(new ClickEvent(ClickEvent.Action.COPY_TO_CLIPBOARD, text)));
     }
 
     private static Entity findEntity(MinecraftServer server, UUID uuid) {

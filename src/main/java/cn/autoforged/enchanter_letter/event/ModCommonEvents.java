@@ -2,6 +2,8 @@ package cn.autoforged.enchanter_letter.event;
 
 import cn.autoforged.enchanter_letter.ModDataComponents;
 import cn.autoforged.enchanter_letter.config.ModConfig;
+import cn.autoforged.enchanter_letter.effect.ModMagicActivation;
+import cn.autoforged.enchanter_letter.effect.ModMagicObstruction;
 import cn.autoforged.enchanter_letter.enchantment.ModEnchantments;
 import cn.autoforged.enchanter_letter.integration.AccessoriesIntegration;
 import cn.autoforged.enchanter_letter.integration.CuriosIntegration;
@@ -18,6 +20,7 @@ import cn.autoforged.enchanter_letter.item.TenacityMagicLetterItem;
 import cn.autoforged.enchanter_letter.item.TimeMagicLetterItem;
 import cn.autoforged.enchanter_letter.item.TravelMagicLetterItem;
 import cn.autoforged.enchanter_letter.item.TreasureMagicLetterItem;
+import cn.autoforged.enchanter_letter.item.TemporaryLetterBinderItem;
 import cn.autoforged.enchanter_letter.storage.LetterStorageManager;
 import net.fabricmc.fabric.api.entity.event.v1.ServerLivingEntityEvents;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerEntityEvents;
@@ -59,17 +62,19 @@ public class ModCommonEvents {
     private static final double MAX_TRAVEL_PER_TICK = 100.0;
     /** 旅行距离采样间隔（tick）：每 tick 全槽轮询会持续扫描在线玩家槽位，
      *  最低加入 1 tick（0.05 秒）延迟，这里取 2 tick 采样一次。 */
-    private static final int TRAVEL_POLL_INTERVAL = 2;
+    private static final int TRAVEL_POLL_INTERVAL = 5;
     private static final int ACCESSORY_COMPAT_INTERVAL = 100;
     private static final int ARMOR_SYNC_INTERVAL = 10;
     /** 手札药水效果轮询间隔（tick，每 1 秒；用世界时间判定循环，无需每 tick）。 */
     private static final int POTION_POLL_INTERVAL = 20;
-
+    /** 魔法激活生命周期检查间隔（tick，每 5 秒；扫描实体与临时合订本清理）。 */
+    private static final int MAGIC_ACTIVATION_INTERVAL = 100;
     private static int accessoryCompatCooldown = ACCESSORY_COMPAT_INTERVAL;
     private static int bindCheckCooldown = BIND_CHECK_INTERVAL;
     private static int armorSyncCooldown = ARMOR_SYNC_INTERVAL;
     private static int travelPollCooldown = 0;
     private static int potionPollCooldown = POTION_POLL_INTERVAL;
+    private static int magicActivationCooldown = MAGIC_ACTIVATION_INTERVAL;
 
     private static final ThreadLocal<UUID> CONVERSION_IN_PROGRESS = new ThreadLocal<>();
 
@@ -125,8 +130,14 @@ public class ModCommonEvents {
             if (!(entity instanceof ItemEntity itemEntity)) return;
             ItemStack stack = itemEntity.getItem();
             if (stack.isEmpty()) return;
+            // 临时手札合订本不允许成为掉落物：直接销毁
+            if (TemporaryLetterBinderItem.isTemporaryBinder(stack)) {
+                entity.discard();
+                return;
+            }
             // 强制消失开启时：带有消失诅咒的物品一律阻止形成掉落物（包括生物的 NBT 装备转成掉落物）
-            if (ModConfig.getInstance().letterVanish.enabled && ModEnchantments.hasVanishing(stack)) {
+            // 本模组通过 addVanishing 标记的消失物品：忽略 /lettervanish 开关，一律销毁。
+            if (ModCommonEvents.shouldVanishClear(stack)) {
                 entity.discard();
                 return;
             }
@@ -204,6 +215,12 @@ public class ModCommonEvents {
             // 光灵发光同步 / 生物消失诅咒零 UUID 绑定 / 掉落物定时清理
             LetterEntityEffects.tick(server);
 
+            // 魔法激活生命周期检查：每 5 秒执行一次，避免每 tick 扫描全部实体
+            if (--magicActivationCooldown <= 0) {
+                magicActivationCooldown = MAGIC_ACTIVATION_INTERVAL;
+                ModMagicActivation.tick(server);
+            }
+
             if (pendingDamages.isEmpty()) return;
 
             int intervalTicks = Math.max(1, (int) (ModConfig.getInstance().magicConversion.intervalSeconds * 20));
@@ -255,6 +272,7 @@ public class ModCommonEvents {
      * 功能开关或减免为 0 时原样返回。
      */
     public static float applyResistanceReduction(LivingEntity victim, float amount) {
+        if (ModMagicObstruction.blocksAll(victim)) return amount;
         if (amount <= 0) return amount;
         ModConfig config = ModConfig.getInstance();
         if (!config.letterResistance.enabled) return amount;
@@ -283,8 +301,9 @@ public class ModCommonEvents {
      *    不再要求伤害类型匹配（需求：生物持有手札时对所有产生的伤害进行增益）。
      */
     public static boolean shouldApplyLetterBoost(DamageSource source) {
-        if (isLetterBoosted(source)) return true;
         Entity attacker = source.getEntity();
+        if (attacker instanceof LivingEntity holder && ModMagicObstruction.blocksDamage(holder)) return false;
+        if (isLetterBoosted(source)) return true;
         if (attacker instanceof LivingEntity holder && !(holder instanceof Player)) {
             return hasEffectiveLetter(holder);
         }
@@ -485,7 +504,35 @@ public class ModCommonEvents {
     }
 
     public static boolean isOurModItem(ItemStack stack) {
-        return stack.getItem() instanceof MagicLetterItem || stack.getItem() instanceof LetterBinderItem;
+        return stack.getItem() instanceof MagicLetterItem || stack.getItem() instanceof LetterBinderItem
+                || stack.getItem() instanceof TemporaryLetterBinderItem;
+    }
+
+    /**
+     * 是否应强制清除该物品（作为掉落物一律销毁；玩家主动丢出的临时合订本走 onItemToss 放行为正常掉落物）。
+     *
+     * 反向逻辑（判断与效果相反），检索逻辑持续运行（每次死亡/复活）。
+     * - 白名单 / addVanishing 模组标记成员：无视 /lettervanish 开关，始终强制消失。
+     * - 开关开启：放行所有带消失诅咒的物品（启动其强制消失）。
+     * - 开关关闭：只有白名单物品触发，其余拦截（不消失）。
+     */
+    public static boolean shouldVanishClear(ItemStack stack) {
+        if (stack.isEmpty()) return false;
+        // 1) 白名单成员（含 addVanishing 标记）：无视开关，始终强制消失。
+        if (ModEnchantments.isModAppliedVanishing(stack) || isForceVanishWhitelisted(stack)) return true;
+        // 2) 开关开启：放行所有带消失诅咒的物品。
+        if (ModConfig.getInstance().letterVanish.enabled) return ModEnchantments.hasVanishing(stack);
+        // 3) 开关关闭：只有白名单物品触发，其余拦截（不消失）。
+        return false;
+    }
+
+    /** 是否为强制消失白名单成员（按物品注册名，如 enchanter_letter:temporary_letter_binder）。 */
+    private static boolean isForceVanishWhitelisted(ItemStack stack) {
+        if (stack == null || stack.isEmpty()) return false;
+        List<String> whitelist = ModConfig.getInstance().letterVanish.forceVanishWhitelist;
+        if (whitelist == null || whitelist.isEmpty()) return false;
+        String itemKey = net.minecraft.core.registries.BuiltInRegistries.ITEM.getKey(stack.getItem()).toString();
+        return whitelist.contains(itemKey);
     }
 
     private static boolean isForeignBound(Player player, ItemStack stack) {
@@ -597,8 +644,16 @@ public class ModCommonEvents {
                     consumer.accept(inner);
                 }
             }
+        } else if (stack.getItem() instanceof TemporaryLetterBinderItem && ModMagicActivation.isActive(entity)) {
+            BundleContents contents = stack.getOrDefault(DataComponents.BUNDLE_CONTENTS, BundleContents.EMPTY);
+            for (ItemStack inner : contents.itemsCopy()) {
+                if (!inner.isEmpty()) {
+                    consumer.accept(inner);
+                }
+            }
         }
     }
+
 
     private static double getMultiplierFromStack(ItemStack stack, Level level) {
         if (stack.isEmpty()) return 0;
@@ -672,6 +727,7 @@ public class ModCommonEvents {
     }
 
     private static double computeDirectMultiplier(LivingEntity holder, Level level) {
+        if (ModMagicObstruction.blocksDamage(holder)) return 0;
         double total = 0;
         for (LetterInfo info : collectEffectiveLetters(holder, level)) {
             if (info.enchanted) continue;
@@ -681,6 +737,7 @@ public class ModCommonEvents {
     }
 
     private static List<TypeGroup> buildConversionGroups(LivingEntity holder, Level level) {
+        if (ModMagicObstruction.blocksDamage(holder)) return List.of();
         Map<ResourceLocation, List<Double>> byType = new LinkedHashMap<>();
         for (LetterInfo info : collectEffectiveLetters(holder, level)) {
             if (!info.enchanted) continue;

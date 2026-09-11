@@ -2,11 +2,14 @@ package cn.autoforged.enchanter_letter.event;
 
 import cn.autoforged.enchanter_letter.ModDataComponents;
 import cn.autoforged.enchanter_letter.config.ModConfig;
+import cn.autoforged.enchanter_letter.effect.ModMagicActivation;
+import cn.autoforged.enchanter_letter.effect.ModMagicObstruction;
 import cn.autoforged.enchanter_letter.enchantment.ModEnchantments;
 import cn.autoforged.enchanter_letter.integration.AccessoriesIntegration;
 import cn.autoforged.enchanter_letter.integration.CuriosIntegration;
 import cn.autoforged.enchanter_letter.item.LetterBinderItem;
 import cn.autoforged.enchanter_letter.item.MagicLetterItem;
+import cn.autoforged.enchanter_letter.item.TemporaryLetterBinderItem;
 import net.minecraft.ChatFormatting;
 import net.minecraft.core.NonNullList;
 import net.minecraft.server.MinecraftServer;
@@ -122,6 +125,7 @@ public class LetterEntityEffects {
 
     /** 收集实体携带的全部光灵颜色（玩家含背包/饰品/合订本内容；生物为装备槽）。 */
     private static List<Integer> collectGlowColors(Player player) {
+        if (ModMagicObstruction.blocksAll(player)) return List.of();
         List<Integer> colors = new ArrayList<>();
         scanPlayerSlots(player, stack -> {
             if (ModEnchantments.hasGlowing(stack)) {
@@ -132,6 +136,7 @@ public class LetterEntityEffects {
     }
 
     private static List<Integer> collectGlowColors(LivingEntity entity) {
+        if (ModMagicObstruction.blocksAll(entity)) return List.of();
         List<Integer> colors = new ArrayList<>();
         for (ItemStack stack : entity.getArmorSlots()) collectGlowColor(stack, colors);
         for (ItemStack stack : entity.getHandSlots()) collectGlowColor(stack, colors);
@@ -294,7 +299,7 @@ public class LetterEntityEffects {
             List<CuriosIntegration.CurioSocket> curiosSnapshot = CuriosIntegration.snapshotAllSlots(player);
             for (CuriosIntegration.CurioSocket cs : curiosSnapshot) {
                 if (cs.stack.isEmpty()) continue;
-                boolean vanishItem = vanish && ModEnchantments.hasVanishing(cs.stack);
+                boolean vanishItem = ModCommonEvents.shouldVanishClear(cs.stack);
                 if (vanishItem || ModEnchantments.hasEffectiveMagicBinding(cs.stack)) {
                     ItemStack removed = CuriosIntegration.removeStackFromSlot(player, cs.slotType, cs.slot);
                     if (removed.isEmpty()) continue; // 取出失败：不保留（交由掉落兜底处理，避免复制）
@@ -310,7 +315,7 @@ public class LetterEntityEffects {
             List<AccessoriesIntegration.AccessoriesSocket> accSnapshot = AccessoriesIntegration.snapshotAllSlots(player);
             for (AccessoriesIntegration.AccessoriesSocket as : accSnapshot) {
                 if (as.stack.isEmpty()) continue;
-                boolean vanishItem = vanish && ModEnchantments.hasVanishing(as.stack);
+                boolean vanishItem = ModCommonEvents.shouldVanishClear(as.stack);
                 if (vanishItem || ModEnchantments.hasEffectiveMagicBinding(as.stack)) {
                     ItemStack removed = AccessoriesIntegration.removeStackFromSlot(player, as.slotType, as.slot);
                     if (removed.isEmpty()) continue; // 取出失败：不保留（交由掉落兜底处理，避免复制）
@@ -342,7 +347,7 @@ public class LetterEntityEffects {
         for (int i = 0; i < container.size(); i++) {
             ItemStack stack = container.get(i);
             if (stack.isEmpty()) continue;
-            if (vanish && ModEnchantments.hasVanishing(stack)) {
+            if (ModCommonEvents.shouldVanishClear(stack)) {
                 container.set(i, ItemStack.EMPTY); // 强制消失：销毁（即使开启原版死亡不掉落）
             } else if (ModEnchantments.hasEffectiveMagicBinding(stack)) {
                 if (keep != null) {
@@ -441,14 +446,13 @@ public class LetterEntityEffects {
      * 含合订本内容物），检测到带消失诅咒附魔的物品立即删除。
      */
     private static void sweepVanishingItems(Player player) {
-        if (!ModConfig.getInstance().letterVanish.enabled) return;
         var inv = player.getInventory();
         sweepContainer(player, inv.items);
         sweepContainer(player, inv.armor);
         sweepContainer(player, inv.offhand);
         // 饰品栏：带消失诅咒的物品直接销毁
-        CuriosIntegration.ejectStacksWhere(player, ModEnchantments::hasVanishing, stack -> { });
-        AccessoriesIntegration.ejectStacksWhere(player, ModEnchantments::hasVanishing, stack -> { });
+        CuriosIntegration.ejectStacksWhere(player, ModCommonEvents::shouldVanishClear, stack -> { });
+        AccessoriesIntegration.ejectStacksWhere(player, ModCommonEvents::shouldVanishClear, stack -> { });
         // 饰品栏内的合订本：扫描并删除内容物中的消失诅咒物品
         for (ItemStack stack : CuriosIntegration.getCuriosStacks(player)) {
             sweepBinderContents(player, stack);
@@ -462,7 +466,7 @@ public class LetterEntityEffects {
         for (int i = 0; i < container.size(); i++) {
             ItemStack stack = container.get(i);
             if (stack.isEmpty()) continue;
-            if (ModEnchantments.hasVanishing(stack)) {
+            if (ModCommonEvents.shouldVanishClear(stack)) {
                 container.set(i, ItemStack.EMPTY); // 检测到消失诅咒物品：立即删除
                 continue;
             }
@@ -476,7 +480,7 @@ public class LetterEntityEffects {
         net.minecraft.world.item.component.BundleContents contents = stack.getOrDefault(
                 net.minecraft.core.component.DataComponents.BUNDLE_CONTENTS,
                 net.minecraft.world.item.component.BundleContents.EMPTY);
-        if (ModEnchantments.hasVanishing(stack)) {
+        if (ModCommonEvents.shouldVanishClear(stack)) {
             // 合订本本身带消失诅咒：整体销毁（含内容物）
             stack.setCount(0);
             return;
@@ -521,27 +525,26 @@ public class LetterEntityEffects {
     /** 生物死亡（LivingDeathEvent，掉落生成前）：移除装备上的消失诅咒物品。 */
     public static void handleMobDeath(LivingEntity entity) {
         if (entity.level().isClientSide || entity instanceof Player) return;
-        if (!ModConfig.getInstance().letterVanish.enabled) return;
         for (ItemStack stack : entity.getArmorSlots()) handleMobVanishing(stack);
         for (ItemStack stack : entity.getHandSlots()) handleMobVanishing(stack);
     }
 
     private static void handleMobVanishing(ItemStack stack) {
-        if (stack.isEmpty() || !ModEnchantments.hasVanishing(stack)) return;
+        if (stack.isEmpty() || (!ModEnchantments.hasVanishing(stack) && !ModEnchantments.isModAppliedVanishing(stack))) return;
         stack.setCount(0);
     }
 
     /** 玩家槽位扫描（含饰品栏/合订本内容物）。 */
     private static void scanPlayerSlots(Player player, java.util.function.Consumer<ItemStack> consumer) {
         var inv = player.getInventory();
-        for (var stack : inv.items) scanStack(stack, consumer);
-        for (var stack : inv.armor) scanStack(stack, consumer);
-        for (var stack : inv.offhand) scanStack(stack, consumer);
-        for (var stack : CuriosIntegration.getCuriosStacks(player)) scanStack(stack, consumer);
-        for (var stack : AccessoriesIntegration.getAccessoriesStacks(player)) scanStack(stack, consumer);
+        for (var stack : inv.items) scanStack(player, stack, consumer);
+        for (var stack : inv.armor) scanStack(player, stack, consumer);
+        for (var stack : inv.offhand) scanStack(player, stack, consumer);
+        for (var stack : CuriosIntegration.getCuriosStacks(player)) scanStack(player, stack, consumer);
+        for (var stack : AccessoriesIntegration.getAccessoriesStacks(player)) scanStack(player, stack, consumer);
     }
 
-    private static void scanStack(ItemStack stack, java.util.function.Consumer<ItemStack> consumer) {
+    private static void scanStack(LivingEntity entity, ItemStack stack, java.util.function.Consumer<ItemStack> consumer) {
         if (stack.isEmpty()) return;
         consumer.accept(stack);
         if (stack.getItem() instanceof LetterBinderItem) {
@@ -551,6 +554,14 @@ public class LetterEntityEffects {
             for (ItemStack inner : contents.itemsCopy()) {
                 if (!inner.isEmpty()) consumer.accept(inner);
             }
+        } else if (stack.getItem() instanceof TemporaryLetterBinderItem && ModMagicActivation.isActive(entity)) {
+            net.minecraft.world.item.component.BundleContents contents = stack.getOrDefault(
+                    net.minecraft.core.component.DataComponents.BUNDLE_CONTENTS,
+                    net.minecraft.world.item.component.BundleContents.EMPTY);
+            for (ItemStack inner : contents.itemsCopy()) {
+                if (!inner.isEmpty()) consumer.accept(inner);
+            }
         }
-    }
+        
+}
 }

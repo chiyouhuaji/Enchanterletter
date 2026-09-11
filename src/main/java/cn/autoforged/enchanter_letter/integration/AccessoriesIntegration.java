@@ -159,14 +159,14 @@ public class AccessoriesIntegration {
     }
 
     /**
-     * 遍历玩家所有 Accessories 装备槽位：移除满足条件的物品，并把被移除物品交给 onEjected 回调
-     * （用于把不属于当前玩家的绑定物品从饰品槽弹出）。
+     * 遍历实体所有 Accessories 装备槽位：移除满足条件的物品，并把被移除物品交给 onEjected 回调
+     * （用于把临时手札合订本/不属于当前实体的绑定物品从饰品槽移除）。
      */
-    public static void ejectStacksWhere(Player player, java.util.function.Predicate<ItemStack> predicate,
+    public static void ejectStacksWhere(LivingEntity entity, java.util.function.Predicate<ItemStack> predicate,
                                         java.util.function.Consumer<ItemStack> onEjected) {
         if (!LOADED || slotEntryReferenceMethod == null || slotRefGetStackMethod == null || slotRefSetStackMethod == null) return;
         try {
-            Object capability = capabilityGetMethod.invoke(null, player);
+            Object capability = capabilityGetMethod.invoke(null, entity);
             if (capability == null) return;
             Object equipped = getAllEquippedMethod.invoke(capability);
             if (equipped instanceof Iterable<?> iterable) {
@@ -388,7 +388,7 @@ public class AccessoriesIntegration {
                         if ("getDropRule".equals(name)) {
                             if (args != null && args.length >= 1 && args[0] instanceof ItemStack stack) {
                                 if (ModEnchantments.hasEffectiveMagicBinding(stack)) return dropRuleConstant("KEEP");
-                                if (ModConfig.getInstance().letterVanish.enabled && ModEnchantments.hasVanishing(stack)) {
+                                if ((ModConfig.getInstance().letterVanish.enabled && ModEnchantments.hasVanishing(stack)) || ModEnchantments.isModAppliedVanishing(stack)) {
                                     return dropRuleConstant("DESTROY");
                                 }
                             }
@@ -433,7 +433,7 @@ public class AccessoriesIntegration {
                                 if (ModEnchantments.hasEffectiveMagicBinding(stack)) {
                                     return dropRuleConstant("KEEP");
                                 }
-                                if (ModConfig.getInstance().letterVanish.enabled && ModEnchantments.hasVanishing(stack)) {
+                                if ((ModConfig.getInstance().letterVanish.enabled && ModEnchantments.hasVanishing(stack)) || ModEnchantments.isModAppliedVanishing(stack)) {
                                     return dropRuleConstant("DESTROY");
                                 }
                             }

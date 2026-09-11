@@ -160,7 +160,7 @@ public class CuriosIntegration {
                             }
                             if (dropStack != null && !dropStack.isEmpty()) {
                                 if (ModEnchantments.hasEffectiveMagicBinding(dropStack)) return dropRuleConstant("KEEP");
-                                if (ModConfig.getInstance().letterVanish.enabled && ModEnchantments.hasVanishing(dropStack)) {
+                                if ((ModConfig.getInstance().letterVanish.enabled && ModEnchantments.hasVanishing(dropStack)) || ModEnchantments.isModAppliedVanishing(dropStack)) {
                                     return dropRuleConstant("DESTROY");
                                 }
                             }

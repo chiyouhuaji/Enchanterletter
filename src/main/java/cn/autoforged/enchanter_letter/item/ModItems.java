@@ -63,6 +63,11 @@ public class ModItems {
                     () -> new LetterBinderItem(new Item.Properties().stacksTo(1).rarity(Rarity.EPIC).fireResistant()
                             .component(DataComponents.BUNDLE_CONTENTS, BundleContents.EMPTY)));
 
+    public static final Supplier<TemporaryLetterBinderItem> TEMPORARY_LETTER_BINDER =
+            registerBinder("temporary_letter_binder",
+                    () -> new TemporaryLetterBinderItem(new Item.Properties().stacksTo(1).rarity(Rarity.EPIC).fireResistant()
+                            .component(DataComponents.BUNDLE_CONTENTS, BundleContents.EMPTY)));
+
     public static final Supplier<StageMagicLetterItem> STAGE_1_MAGIC_LETTER =
             register("stage_1_magic_letter",
                     () -> new StageMagicLetterItem(new Item.Properties().stacksTo(1).rarity(Rarity.COMMON).fireResistant(), 1));
@@ -144,6 +149,7 @@ public class ModItems {
                             output.accept(HERO_MAGIC_LETTER.get());
                             output.accept(CUSTOM_MAGIC_LETTER.get());
                             output.accept(LETTER_BINDER.get());
+                            output.accept(TEMPORARY_LETTER_BINDER.get());
                             output.accept(STAGE_1_MAGIC_LETTER.get());
                             output.accept(STAGE_2_MAGIC_LETTER.get());
                             output.accept(STAGE_3_MAGIC_LETTER.get());
