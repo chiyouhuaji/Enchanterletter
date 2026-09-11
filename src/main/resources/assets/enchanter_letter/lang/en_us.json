@@ -68,6 +68,16 @@
   "item.enchanter_letter.hero_magic_letter": "Hero Enchanter Letter",
   "item.enchanter_letter.custom_magic_letter": "Custom Enchanter Letter",
   "item.enchanter_letter.letter_binder": "Letter Compendium",
+  "item.enchanter_letter.temporary_letter_binder": "Temporary Letter Compendium",
+
+  "effect.enchanter_letter.magic_activation": "Magic Activation",
+
+  "command.enchanter_letter.letterclone.require_binder": "Hold a Letter Compendium in your main hand",
+  "command.enchanter_letter.letterclone.invalid_seconds": "Seconds must be greater than 0",
+  "command.enchanter_letter.letterclone.inventory_full": "Inventory full, cannot add Temporary Letter Compendium",
+  "command.enchanter_letter.letterclone.success": "Received a Temporary Letter Compendium lasting %s seconds",
+  "command.enchanter_letter.letterclone.copy_header": "Temporary Letter Compendium give command (click to copy):",
+  "command.enchanter_letter.letterclone.copy_hint": "Click to copy this /give command",
 
   "command.enchanter_letter.lettermulti.success": "Multiple letters active: %s",
   "command.enchanter_letter.lettersame.success": "Identical letters (except conversion) both active: %s",
@@ -147,6 +157,11 @@
   "command.enchanter_letter.letterstorage.nbt_header": "[%s full NBT] Click to copy:",
   "command.enchanter_letter.letterstorage.nbt_copy_hint": "Click to copy the full NBT data",
   "command.enchanter_letter.letterstorage.target_not_found": "No such player/entity (must exist and be loaded): %s",
+  "command.enchanter_letter.letterstorage.captured_header": "Captured entity: ",
+  "command.enchanter_letter.letterstorage.copy_name_hint": "Click to copy name",
+  "command.enchanter_letter.letterstorage.copy_uuid_hint": "Click to copy UUID",
+  "command.enchanter_letter.letterstorage.copy_entity_id_hint": "Click to copy entity ID",
+  "effect.enchanter_letter.magic_obstruction": "Magic Obstruction",
   "command.enchanter_letter.lettereffect.require_letter": "Hold an Enchanter Letter in your main hand",
   "command.enchanter_letter.lettereffect.added": "Added effect %s (%ss, level %s) to slot #%s",
   "command.enchanter_letter.lettereffect.deleted": "Removed slot #%s",

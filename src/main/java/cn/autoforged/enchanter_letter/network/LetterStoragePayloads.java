@@ -3,8 +3,13 @@ package cn.autoforged.enchanter_letter.network;
 import cn.autoforged.enchanter_letter.UsefulMagicEnchanterLetterMod;
 import cn.autoforged.enchanter_letter.storage.LetterStorageClient;
 import cn.autoforged.enchanter_letter.storage.LetterStorageManager;
+import net.minecraft.ChatFormatting;
 import net.minecraft.network.FriendlyByteBuf;
+import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.network.chat.ClickEvent;
 import net.minecraft.network.chat.Component;
+import net.minecraft.network.chat.HoverEvent;
+import net.minecraft.network.chat.MutableComponent;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
@@ -83,8 +88,17 @@ public class LetterStoragePayloads {
                 if (target == null) return;
                 LetterStorageManager.setCaptured(player, msg.entityId);
                 String name = target.getDisplayName().getString();
-                player.sendSystemMessage(Component.translatable(
-                        "command.enchanter_letter.letterstorage.captured", name, msg.entityId.toString()));
+                String uuidText = msg.entityId.toString();
+                String entityIdText = BuiltInRegistries.ENTITY_TYPE.getKey(target.getType()).toString();
+                // 生物名 / UUID / 实体ID 均可点击复制。
+                MutableComponent msgComponent = Component.translatable(
+                        "command.enchanter_letter.letterstorage.captured_header");
+                msgComponent.append(clickableCopy(name, "command.enchanter_letter.letterstorage.copy_name_hint"))
+                        .append("  ")
+                        .append(clickableCopy(uuidText, "command.enchanter_letter.letterstorage.copy_uuid_hint"))
+                        .append("  ")
+                        .append(clickableCopy(entityIdText, "command.enchanter_letter.letterstorage.copy_entity_id_hint"));
+                player.sendSystemMessage(msgComponent);
             });
             ctx.setPacketHandled(true);
         }
@@ -115,6 +129,14 @@ public class LetterStoragePayloads {
             LetterStorageClient.setActive(msg.active);
             ctx.setPacketHandled(true);
         }
+    }
+
+    private static MutableComponent clickableCopy(String text, String hoverKey) {
+        return Component.literal(text).withStyle(style -> style
+                .withColor(ChatFormatting.AQUA)
+                .withHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT,
+                        Component.translatable(hoverKey)))
+                .withClickEvent(new ClickEvent(ClickEvent.Action.COPY_TO_CLIPBOARD, text)));
     }
 
     private static Entity findEntity(MinecraftServer server, UUID uuid) {
